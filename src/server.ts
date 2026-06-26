@@ -1,5 +1,4 @@
 import handler, { createServerEntry } from "@tanstack/react-start/server-entry";
-import "./lib/error-capture";
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
 

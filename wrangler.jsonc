@@ -1,12 +1,10 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "cliveo",
-  "compatibility_date": "2025-09-24",
+  "compatibility_date": "2026-04-04",
   "compatibility_flags": ["nodejs_compat"],
   "main": "src/server.ts",
-  "assets": {
-    "directory": "./dist/client",
-    "binding": "ASSETS"
+  "observability": {
+    "enabled": true
   }
 }
-
