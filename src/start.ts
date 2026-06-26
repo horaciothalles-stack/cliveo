@@ -1,9 +1,5 @@
-import { defaultStreamHandler } from "@tanstack/react-start/server";
-import { getRouter } from "./router";
+import { createStart } from "@tanstack/react-start";
 
-export default {
-  async fetch(request: Request) {
-    const router = getRouter();
-    return defaultStreamHandler({ request, router, responseHeaders: new Headers() });
-  },
-};
+export const startInstance = createStart(() => {
+  return {};
+});
