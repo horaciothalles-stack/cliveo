@@ -2,7 +2,6 @@ import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable/index";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -77,13 +76,17 @@ function LoginPage() {
 
   const google = async () => {
     setLoading(true);
-    const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: window.location.origin + (search.redirect ?? "/"),
+      },
     });
-    if (result.error) {
-      toast.error(result.error.message ?? "Erro ao entrar com Google");
+    if (error) {
+      toast.error(error.message ?? "Erro ao entrar com Google");
       setLoading(false);
     }
+    // On success, Supabase redirects the browser to Google — nothing else to do here.
   };
 
   return (
