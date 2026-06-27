@@ -12,10 +12,12 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
+import { Route as PortalClienteIdRouteImport } from './routes/portal.$clienteId'
 import { Route as AuthenticatedServicosRouteImport } from './routes/_authenticated/servicos'
 import { Route as AuthenticatedRefacoesRouteImport } from './routes/_authenticated/refacoes'
 import { Route as AuthenticatedProjetosRouteImport } from './routes/_authenticated/projetos'
 import { Route as AuthenticatedPrecificacaoRouteImport } from './routes/_authenticated/precificacao'
+import { Route as AuthenticatedPortalManagerRouteImport } from './routes/_authenticated/portal-manager'
 import { Route as AuthenticatedClientesRouteImport } from './routes/_authenticated/clientes'
 import { Route as AuthenticatedBriefingRouteImport } from './routes/_authenticated/briefing'
 import { Route as AuthenticatedAuditoriaRouteImport } from './routes/_authenticated/auditoria'
@@ -34,6 +36,11 @@ const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AuthenticatedRoute,
+} as any)
+const PortalClienteIdRoute = PortalClienteIdRouteImport.update({
+  id: '/portal/$clienteId',
+  path: '/portal/$clienteId',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedServicosRoute = AuthenticatedServicosRouteImport.update({
   id: '/servicos',
@@ -54,6 +61,12 @@ const AuthenticatedPrecificacaoRoute =
   AuthenticatedPrecificacaoRouteImport.update({
     id: '/precificacao',
     path: '/precificacao',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedPortalManagerRoute =
+  AuthenticatedPortalManagerRouteImport.update({
+    id: '/portal-manager',
+    path: '/portal-manager',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
 const AuthenticatedClientesRoute = AuthenticatedClientesRouteImport.update({
@@ -84,10 +97,12 @@ export interface FileRoutesByFullPath {
   '/auditoria': typeof AuthenticatedAuditoriaRoute
   '/briefing': typeof AuthenticatedBriefingRoute
   '/clientes': typeof AuthenticatedClientesRoute
+  '/portal-manager': typeof AuthenticatedPortalManagerRoute
   '/precificacao': typeof AuthenticatedPrecificacaoRoute
   '/projetos': typeof AuthenticatedProjetosRoute
   '/refacoes': typeof AuthenticatedRefacoesRoute
   '/servicos': typeof AuthenticatedServicosRoute
+  '/portal/$clienteId': typeof PortalClienteIdRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
@@ -95,10 +110,12 @@ export interface FileRoutesByTo {
   '/auditoria': typeof AuthenticatedAuditoriaRoute
   '/briefing': typeof AuthenticatedBriefingRoute
   '/clientes': typeof AuthenticatedClientesRoute
+  '/portal-manager': typeof AuthenticatedPortalManagerRoute
   '/precificacao': typeof AuthenticatedPrecificacaoRoute
   '/projetos': typeof AuthenticatedProjetosRoute
   '/refacoes': typeof AuthenticatedRefacoesRoute
   '/servicos': typeof AuthenticatedServicosRoute
+  '/portal/$clienteId': typeof PortalClienteIdRoute
   '/': typeof AuthenticatedIndexRoute
 }
 export interface FileRoutesById {
@@ -109,10 +126,12 @@ export interface FileRoutesById {
   '/_authenticated/auditoria': typeof AuthenticatedAuditoriaRoute
   '/_authenticated/briefing': typeof AuthenticatedBriefingRoute
   '/_authenticated/clientes': typeof AuthenticatedClientesRoute
+  '/_authenticated/portal-manager': typeof AuthenticatedPortalManagerRoute
   '/_authenticated/precificacao': typeof AuthenticatedPrecificacaoRoute
   '/_authenticated/projetos': typeof AuthenticatedProjetosRoute
   '/_authenticated/refacoes': typeof AuthenticatedRefacoesRoute
   '/_authenticated/servicos': typeof AuthenticatedServicosRoute
+  '/portal/$clienteId': typeof PortalClienteIdRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
 }
 export interface FileRouteTypes {
@@ -124,10 +143,12 @@ export interface FileRouteTypes {
     | '/auditoria'
     | '/briefing'
     | '/clientes'
+    | '/portal-manager'
     | '/precificacao'
     | '/projetos'
     | '/refacoes'
     | '/servicos'
+    | '/portal/$clienteId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/login'
@@ -135,10 +156,12 @@ export interface FileRouteTypes {
     | '/auditoria'
     | '/briefing'
     | '/clientes'
+    | '/portal-manager'
     | '/precificacao'
     | '/projetos'
     | '/refacoes'
     | '/servicos'
+    | '/portal/$clienteId'
     | '/'
   id:
     | '__root__'
@@ -148,16 +171,19 @@ export interface FileRouteTypes {
     | '/_authenticated/auditoria'
     | '/_authenticated/briefing'
     | '/_authenticated/clientes'
+    | '/_authenticated/portal-manager'
     | '/_authenticated/precificacao'
     | '/_authenticated/projetos'
     | '/_authenticated/refacoes'
     | '/_authenticated/servicos'
+    | '/portal/$clienteId'
     | '/_authenticated/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   LoginRoute: typeof LoginRoute
+  PortalClienteIdRoute: typeof PortalClienteIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -182,6 +208,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof AuthenticatedIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
+    }
+    '/portal/$clienteId': {
+      id: '/portal/$clienteId'
+      path: '/portal/$clienteId'
+      fullPath: '/portal/$clienteId'
+      preLoaderRoute: typeof PortalClienteIdRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_authenticated/servicos': {
       id: '/_authenticated/servicos'
@@ -209,6 +242,13 @@ declare module '@tanstack/react-router' {
       path: '/precificacao'
       fullPath: '/precificacao'
       preLoaderRoute: typeof AuthenticatedPrecificacaoRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/portal-manager': {
+      id: '/_authenticated/portal-manager'
+      path: '/portal-manager'
+      fullPath: '/portal-manager'
+      preLoaderRoute: typeof AuthenticatedPortalManagerRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/clientes': {
@@ -247,6 +287,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedAuditoriaRoute: typeof AuthenticatedAuditoriaRoute
   AuthenticatedBriefingRoute: typeof AuthenticatedBriefingRoute
   AuthenticatedClientesRoute: typeof AuthenticatedClientesRoute
+  AuthenticatedPortalManagerRoute: typeof AuthenticatedPortalManagerRoute
   AuthenticatedPrecificacaoRoute: typeof AuthenticatedPrecificacaoRoute
   AuthenticatedProjetosRoute: typeof AuthenticatedProjetosRoute
   AuthenticatedRefacoesRoute: typeof AuthenticatedRefacoesRoute
@@ -259,6 +300,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedAuditoriaRoute: AuthenticatedAuditoriaRoute,
   AuthenticatedBriefingRoute: AuthenticatedBriefingRoute,
   AuthenticatedClientesRoute: AuthenticatedClientesRoute,
+  AuthenticatedPortalManagerRoute: AuthenticatedPortalManagerRoute,
   AuthenticatedPrecificacaoRoute: AuthenticatedPrecificacaoRoute,
   AuthenticatedProjetosRoute: AuthenticatedProjetosRoute,
   AuthenticatedRefacoesRoute: AuthenticatedRefacoesRoute,
@@ -273,6 +315,7 @@ const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   LoginRoute: LoginRoute,
+  PortalClienteIdRoute: PortalClienteIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

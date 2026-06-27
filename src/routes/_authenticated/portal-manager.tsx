@@ -65,9 +65,9 @@ function PortalManagerPage() {
 
   return (
     <AppLayout
-      title="Portal do Cliente"
-      description="Gerencie os links de acesso e acompanhe solicitações recebidas"
-    >
+  title="Portal do Cliente"
+  subtitle="Gerencie os links de acesso e acompanhe solicitações recebidas"
+>
       <div className="space-y-8">
 
         {/* SOLICITAÇÕES PENDENTES */}

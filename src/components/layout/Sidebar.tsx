@@ -1,19 +1,11 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
-  LayoutDashboard,
-  Users,
-  FolderKanban,
-  Layers,
-  ClipboardList,
-  Wrench,
-  Calculator,
-  ScrollText,
-  RefreshCw,
-  UserCog,
+  LayoutDashboard, Users, FolderKanban, Layers,
+  ClipboardList, Wrench, Calculator, ScrollText,
+  RefreshCw, UserCircle,
 } from "lucide-react";
 import logo from "@/assets/cliveo-logo.png";
 import { cn } from "@/lib/utils";
-import { UserCircle } from "lucide-react"
 
 const NAV = [
   { to: "/", label: "Visão Geral", icon: LayoutDashboard },
@@ -22,10 +14,10 @@ const NAV = [
   { to: "/ativos", label: "Central de Ativos", icon: Layers },
   { to: "/briefing", label: "Matriz de Briefing", icon: ClipboardList },
   { to: "/servicos", label: "Gestão de Serviços", icon: Wrench },
-  { to: "/precificacao", label: "Precificação", icon: Calculator, },
-  { to: "/auditoria", label: "Auditoria", icon: ScrollText, },
+  { to: "/precificacao", label: "Precificação", icon: Calculator },
+  { to: "/auditoria", label: "Auditoria", icon: ScrollText },
   { to: "/refacoes", label: "Refações", icon: RefreshCw },
-  { to: "/portal", label: "Portal do Cliente", url: "/portal-manager", icon: UserCircle },
+  { to: "/portal-manager", label: "Portal do Cliente", icon: UserCircle },
 ];
 
 export function Sidebar() {
@@ -46,34 +38,6 @@ export function Sidebar() {
         {NAV.map((item) => {
           const active = pathname === item.to;
           const Icon = item.icon;
-          const content = (
-            <>
-              <Icon className={cn("size-4 shrink-0", active && "text-primary")} />
-              <span className="flex-1 truncate">{item.label}</span>
-              {item.soon && (
-                <span className="text-[9px] uppercase tracking-wider rounded bg-muted px-1.5 py-0.5 text-muted-foreground">
-                  em breve
-                </span>
-              )}
-            </>
-          );
-
-          if (item.soon) {
-            return (
-              <div
-                key={item.to}
-                className={cn(
-                  "group flex items-center gap-3 rounded-lg px-3 py-2 text-sm opacity-60 cursor-not-allowed",
-                  active
-                    ? "bg-primary/10 text-foreground border border-primary/30"
-                    : "text-muted-foreground",
-                )}
-              >
-                {content}
-              </div>
-            );
-          }
-
           return (
             <Link
               key={item.to}
@@ -85,14 +49,15 @@ export function Sidebar() {
                   : "text-muted-foreground hover:bg-secondary hover:text-foreground",
               )}
             >
-              {content}
+              <Icon className={cn("size-4 shrink-0", active && "text-primary")} />
+              <span className="flex-1 truncate">{item.label}</span>
             </Link>
           );
         })}
       </nav>
       <div className="border-t p-4 text-[11px] text-muted-foreground">
         <div className="flex items-center gap-2">
-          <span className="size-1.5 rounded-full bg-[var(--brand-amber)]" />
+          <span className="size-1.5 rounded-full bg-brand-amber" />
           Sistema operacional CLIVEO v0.1
         </div>
       </div>
