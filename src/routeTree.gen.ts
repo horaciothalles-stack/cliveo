@@ -14,8 +14,11 @@ import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as AuthenticatedServicosRouteImport } from './routes/_authenticated/servicos'
 import { Route as AuthenticatedRefacoesRouteImport } from './routes/_authenticated/refacoes'
+import { Route as AuthenticatedProjetosRouteImport } from './routes/_authenticated/projetos'
+import { Route as AuthenticatedPrecificacaoRouteImport } from './routes/_authenticated/precificacao'
 import { Route as AuthenticatedClientesRouteImport } from './routes/_authenticated/clientes'
 import { Route as AuthenticatedBriefingRouteImport } from './routes/_authenticated/briefing'
+import { Route as AuthenticatedAuditoriaRouteImport } from './routes/_authenticated/auditoria'
 import { Route as AuthenticatedAtivosRouteImport } from './routes/_authenticated/ativos'
 
 const LoginRoute = LoginRouteImport.update({
@@ -42,6 +45,17 @@ const AuthenticatedRefacoesRoute = AuthenticatedRefacoesRouteImport.update({
   path: '/refacoes',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedProjetosRoute = AuthenticatedProjetosRouteImport.update({
+  id: '/projetos',
+  path: '/projetos',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedPrecificacaoRoute =
+  AuthenticatedPrecificacaoRouteImport.update({
+    id: '/precificacao',
+    path: '/precificacao',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedClientesRoute = AuthenticatedClientesRouteImport.update({
   id: '/clientes',
   path: '/clientes',
@@ -50,6 +64,11 @@ const AuthenticatedClientesRoute = AuthenticatedClientesRouteImport.update({
 const AuthenticatedBriefingRoute = AuthenticatedBriefingRouteImport.update({
   id: '/briefing',
   path: '/briefing',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedAuditoriaRoute = AuthenticatedAuditoriaRouteImport.update({
+  id: '/auditoria',
+  path: '/auditoria',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedAtivosRoute = AuthenticatedAtivosRouteImport.update({
@@ -62,16 +81,22 @@ export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
   '/login': typeof LoginRoute
   '/ativos': typeof AuthenticatedAtivosRoute
+  '/auditoria': typeof AuthenticatedAuditoriaRoute
   '/briefing': typeof AuthenticatedBriefingRoute
   '/clientes': typeof AuthenticatedClientesRoute
+  '/precificacao': typeof AuthenticatedPrecificacaoRoute
+  '/projetos': typeof AuthenticatedProjetosRoute
   '/refacoes': typeof AuthenticatedRefacoesRoute
   '/servicos': typeof AuthenticatedServicosRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/ativos': typeof AuthenticatedAtivosRoute
+  '/auditoria': typeof AuthenticatedAuditoriaRoute
   '/briefing': typeof AuthenticatedBriefingRoute
   '/clientes': typeof AuthenticatedClientesRoute
+  '/precificacao': typeof AuthenticatedPrecificacaoRoute
+  '/projetos': typeof AuthenticatedProjetosRoute
   '/refacoes': typeof AuthenticatedRefacoesRoute
   '/servicos': typeof AuthenticatedServicosRoute
   '/': typeof AuthenticatedIndexRoute
@@ -81,8 +106,11 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/login': typeof LoginRoute
   '/_authenticated/ativos': typeof AuthenticatedAtivosRoute
+  '/_authenticated/auditoria': typeof AuthenticatedAuditoriaRoute
   '/_authenticated/briefing': typeof AuthenticatedBriefingRoute
   '/_authenticated/clientes': typeof AuthenticatedClientesRoute
+  '/_authenticated/precificacao': typeof AuthenticatedPrecificacaoRoute
+  '/_authenticated/projetos': typeof AuthenticatedProjetosRoute
   '/_authenticated/refacoes': typeof AuthenticatedRefacoesRoute
   '/_authenticated/servicos': typeof AuthenticatedServicosRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
@@ -93,16 +121,22 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/ativos'
+    | '/auditoria'
     | '/briefing'
     | '/clientes'
+    | '/precificacao'
+    | '/projetos'
     | '/refacoes'
     | '/servicos'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/login'
     | '/ativos'
+    | '/auditoria'
     | '/briefing'
     | '/clientes'
+    | '/precificacao'
+    | '/projetos'
     | '/refacoes'
     | '/servicos'
     | '/'
@@ -111,8 +145,11 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/login'
     | '/_authenticated/ativos'
+    | '/_authenticated/auditoria'
     | '/_authenticated/briefing'
     | '/_authenticated/clientes'
+    | '/_authenticated/precificacao'
+    | '/_authenticated/projetos'
     | '/_authenticated/refacoes'
     | '/_authenticated/servicos'
     | '/_authenticated/'
@@ -160,6 +197,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRefacoesRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/projetos': {
+      id: '/_authenticated/projetos'
+      path: '/projetos'
+      fullPath: '/projetos'
+      preLoaderRoute: typeof AuthenticatedProjetosRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/precificacao': {
+      id: '/_authenticated/precificacao'
+      path: '/precificacao'
+      fullPath: '/precificacao'
+      preLoaderRoute: typeof AuthenticatedPrecificacaoRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/clientes': {
       id: '/_authenticated/clientes'
       path: '/clientes'
@@ -174,6 +225,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedBriefingRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/auditoria': {
+      id: '/_authenticated/auditoria'
+      path: '/auditoria'
+      fullPath: '/auditoria'
+      preLoaderRoute: typeof AuthenticatedAuditoriaRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/ativos': {
       id: '/_authenticated/ativos'
       path: '/ativos'
@@ -186,8 +244,11 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteChildren {
   AuthenticatedAtivosRoute: typeof AuthenticatedAtivosRoute
+  AuthenticatedAuditoriaRoute: typeof AuthenticatedAuditoriaRoute
   AuthenticatedBriefingRoute: typeof AuthenticatedBriefingRoute
   AuthenticatedClientesRoute: typeof AuthenticatedClientesRoute
+  AuthenticatedPrecificacaoRoute: typeof AuthenticatedPrecificacaoRoute
+  AuthenticatedProjetosRoute: typeof AuthenticatedProjetosRoute
   AuthenticatedRefacoesRoute: typeof AuthenticatedRefacoesRoute
   AuthenticatedServicosRoute: typeof AuthenticatedServicosRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
@@ -195,8 +256,11 @@ interface AuthenticatedRouteChildren {
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedAtivosRoute: AuthenticatedAtivosRoute,
+  AuthenticatedAuditoriaRoute: AuthenticatedAuditoriaRoute,
   AuthenticatedBriefingRoute: AuthenticatedBriefingRoute,
   AuthenticatedClientesRoute: AuthenticatedClientesRoute,
+  AuthenticatedPrecificacaoRoute: AuthenticatedPrecificacaoRoute,
+  AuthenticatedProjetosRoute: AuthenticatedProjetosRoute,
   AuthenticatedRefacoesRoute: AuthenticatedRefacoesRoute,
   AuthenticatedServicosRoute: AuthenticatedServicosRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,

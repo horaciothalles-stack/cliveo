@@ -17,13 +17,13 @@ import { cn } from "@/lib/utils";
 const NAV = [
   { to: "/", label: "Visão Geral", icon: LayoutDashboard },
   { to: "/clientes", label: "Clientes", icon: Users },
-  { to: "/projetos", label: "Projetos", icon: FolderKanban, soon: true },
+  { to: "/projetos", label: "Projetos", icon: FolderKanban },
   { to: "/ativos", label: "Central de Ativos", icon: Layers },
   { to: "/briefing", label: "Matriz de Briefing", icon: ClipboardList },
   { to: "/servicos", label: "Gestão de Serviços", icon: Wrench },
-  { to: "/precificacao", label: "Precificação", icon: Calculator, soon: true },
-  { to: "/auditoria", label: "Auditoria", icon: ScrollText, soon: true },
-  { to: "/refacoes", label: "Refações", icon: RefreshCw, soon: true },
+  { to: "/precificacao", label: "Precificação", icon: Calculator, },
+  { to: "/auditoria", label: "Auditoria", icon: ScrollText, },
+  { to: "/refacoes", label: "Refações", icon: RefreshCw },
   { to: "/portal", label: "Portal do Cliente", icon: UserCog, soon: true },
 ];
 
