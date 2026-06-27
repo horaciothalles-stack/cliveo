@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import logo from "@/assets/cliveo-logo.png";
 import { cn } from "@/lib/utils";
+import { UserCircle } from "lucide-react"
 
 const NAV = [
   { to: "/", label: "Visão Geral", icon: LayoutDashboard },
@@ -24,7 +25,7 @@ const NAV = [
   { to: "/precificacao", label: "Precificação", icon: Calculator, },
   { to: "/auditoria", label: "Auditoria", icon: ScrollText, },
   { to: "/refacoes", label: "Refações", icon: RefreshCw },
-  { to: "/portal", label: "Portal do Cliente", icon: UserCog, soon: true },
+  { to: "/portal", label: "Portal do Cliente", url: "/portal-manager", icon: UserCircle },
 ];
 
 export function Sidebar() {
