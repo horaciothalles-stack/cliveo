@@ -1,10 +1,34 @@
 import { Link, useRouterState } from "@tanstack/react-router";
+import { useState } from "react";
+import {
+  LayoutDashboard,
+  Users,
+  FolderKanban,
+  Layers,
+  ClipboardList,
+  Wrench,
+  Calculator,
+  ScrollText,
+  UserCircle,
+  UserCheck,
+  Building2,
+  TrendingUp,
+  Sparkles,
+  DollarSign,
+  FileBarChart2,
+  CalendarDays,
+  Megaphone,
+  ChevronDown,
+  ChevronRight,
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import logo from "@/assets/cliveo-logo.png";
 import { cn } from "@/lib/utils";
 
 type NavItem = {
   to?: string;
   label: string;
+  icon: LucideIcon;
   disabled?: boolean;
 };
 
@@ -15,61 +39,74 @@ type NavSection = {
 
 const NAV_SECTIONS: NavSection[] = [
   {
-    title: "🏠 Visão Geral",
-    items: [{ to: "/", label: "Visão Geral" }],
+    title: "Visão Geral",
+    items: [{ to: "/", label: "Visão Geral", icon: LayoutDashboard }],
   },
   {
-    title: "🚀 COMERCIAL",
+    title: "Comercial",
     items: [
-      { to: "/crm/leads", label: "Leads" },
-      { to: "/crm/empresas", label: "Empresas" },
-      { to: "/crm/oportunidades", label: "Oportunidades" },
-      { to: "/clientes", label: "Clientes" },
+      { to: "/crm/leads", label: "Leads", icon: UserCheck },
+      { to: "/crm/empresas", label: "Empresas", icon: Building2 },
+      { to: "/crm/oportunidades", label: "Oportunidades", icon: TrendingUp },
+      { to: "/clientes", label: "Clientes", icon: Users },
     ],
   },
   {
-    title: "📂 PROJETOS",
+    title: "Projetos",
     items: [
-      { to: "/projetos", label: "Projetos" },
-      { to: "/briefing", label: "Briefings" },
-      { to: "/servicos", label: "Serviços" },
+      { to: "/projetos", label: "Projetos", icon: FolderKanban },
+      { to: "/briefing", label: "Briefings", icon: ClipboardList },
+      { to: "/servicos", label: "Serviços", icon: Wrench },
     ],
   },
   {
-    title: "🎨 ATIVOS",
-    items: [{ to: "/ativos", label: "Biblioteca de Ativos" }],
+    title: "Ativos",
+    items: [{ to: "/ativos", label: "Biblioteca de Ativos", icon: Layers }],
   },
   {
-    title: "📢 MARKETING",
+    title: "Marketing",
     items: [
-      { label: "Planejamento", disabled: true },
-      { label: "Conteúdo", disabled: true },
-      { label: "Calendário", disabled: true },
-      { label: "Campanhas", disabled: true },
+      { label: "Planejamento", icon: Sparkles, disabled: true },
+      { label: "Conteúdo", icon: Sparkles, disabled: true },
+      { label: "Calendário", icon: CalendarDays, disabled: true },
+      { label: "Campanhas", icon: Megaphone, disabled: true },
     ],
   },
   {
-    title: "💰 FINANCEIRO",
+    title: "Financeiro",
     items: [
-      { to: "/precificacao", label: "Financeiro" },
-      { to: "/precificacao", label: "Precificação" },
+      { to: "/precificacao", label: "Financeiro", icon: DollarSign },
+      { to: "/precificacao", label: "Precificação", icon: Calculator },
     ],
   },
   {
-    title: "📈 GESTÃO",
+    title: "Gestão",
     items: [
-      { to: "/auditoria", label: "Auditoria" },
-      { label: "Relatórios", disabled: true },
+      { to: "/auditoria", label: "Auditoria", icon: ScrollText },
+      { label: "Relatórios", icon: FileBarChart2, disabled: true },
     ],
   },
   {
-    title: "👥 CLIENTES",
-    items: [{ to: "/portal-manager", label: "Portal do Cliente" }],
+    title: "Clientes",
+    items: [{ to: "/portal-manager", label: "Portal do Cliente", icon: UserCircle }],
   },
 ];
 
 export function Sidebar() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>(
+    NAV_SECTIONS.reduce((acc, section) => {
+      acc[section.title] = section.items.length > 1;
+      return acc;
+    }, {} as Record<string, boolean>),
+  );
+
+  const toggleSection = (title: string) => {
+    setOpenSections((prev) => ({
+      ...prev,
+      [title]: !prev[title],
+    }));
+  };
 
   return (
     <aside className="hidden md:flex w-64 shrink-0 flex-col border-r bg-sidebar text-sidebar-foreground">
@@ -82,45 +119,59 @@ export function Sidebar() {
           <div className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">by HRC</div>
         </div>
       </div>
-      <nav className="flex-1 overflow-y-auto py-4 px-4">
-        {NAV_SECTIONS.map((section, index) => (
-          <div key={section.title} className={cn("space-y-2", index > 0 && "pt-5")}> 
-            {index > 0 ? <div className="h-px bg-sidebar-border/80" /> : null}
-            <div className="px-2 text-[11px] font-semibold uppercase tracking-[0.28em] text-muted-foreground/75">
-              {section.title}
+      <nav className="flex-1 overflow-y-auto py-4 px-3">
+        {NAV_SECTIONS.map((section, index) => {
+          const isOpen = openSections[section.title];
+
+          return (
+            <div key={section.title} className={cn(index > 0 && "pt-5")}>
+              {index > 0 ? <div className="h-px bg-sidebar-border/80" /> : null}
+              <button
+                type="button"
+                onClick={() => toggleSection(section.title)}
+                className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm font-semibold text-muted-foreground transition hover:bg-secondary hover:text-foreground"
+              >
+                <span className="text-[11px] uppercase tracking-[0.28em]">{section.title}</span>
+                {isOpen ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}
+              </button>
+              {isOpen && (
+                <div className="space-y-1 mt-1">
+                  {section.items.map((item) => {
+                    const active = item.to
+                      ? pathname === item.to || (item.to !== "/" && pathname.startsWith(`${item.to}/`))
+                      : false;
+
+                    const itemClassName = cn(
+                      "group flex items-center gap-2 rounded-lg px-4 py-2 text-sm transition-colors",
+                      active
+                        ? "bg-primary/10 text-foreground border border-primary/30"
+                        : item.disabled
+                          ? "cursor-not-allowed text-muted-foreground/70"
+                          : "text-muted-foreground hover:bg-secondary hover:text-foreground",
+                    );
+
+                    const content = (
+                      <div className={itemClassName}>
+                        <item.icon className={cn("size-4 shrink-0", active && "text-primary")} />
+                        <span className={cn("truncate", item.disabled && "opacity-80")}>
+                          {item.label}
+                        </span>
+                      </div>
+                    );
+
+                    return item.to && !item.disabled ? (
+                      <Link key={item.to} to={item.to}>
+                        {content}
+                      </Link>
+                    ) : (
+                      <div key={item.label}>{content}</div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
-            <div className="space-y-1">
-              {section.items.map((item) => {
-                const active = item.to
-                  ? pathname === item.to || (item.to !== "/" && pathname.startsWith(`${item.to}/`))
-                  : false;
-
-                const itemClassName = cn(
-                  "group rounded-lg px-3 py-2 text-sm transition-colors",
-                  active
-                    ? "bg-primary/10 text-foreground border border-primary/30"
-                    : item.disabled
-                      ? "cursor-not-allowed text-muted-foreground/70"
-                      : "text-muted-foreground hover:bg-secondary hover:text-foreground"
-                );
-
-                const content = (
-                  <div className={itemClassName}>
-                    <span className={cn("block truncate", item.disabled ? "opacity-80" : "")}>• {item.label}</span>
-                  </div>
-                );
-
-                return item.to && !item.disabled ? (
-                  <Link key={item.to} to={item.to}>
-                    {content}
-                  </Link>
-                ) : (
-                  <div key={item.label}>{content}</div>
-                );
-              })}
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </nav>
       <div className="border-t p-4 text-[11px] text-muted-foreground">
         <div className="flex items-center gap-2">
