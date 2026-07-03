@@ -245,7 +245,7 @@ function LandingPagesPage() {
               {visibleTemplates.map((template) => (
                 <Card key={template.id} className="border-border">
                   <CardHeader>
-                    <CardTitle>{template.name}</CardTitle>
+                    <CardTitle>Template genérico</CardTitle>
                     <CardDescription>{template.description}</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-3">
@@ -253,14 +253,14 @@ function LandingPagesPage() {
                       <div className="overflow-hidden rounded-2xl border border-border bg-slate-950/5">
                         <img
                           src={template.previewImage}
-                          alt={`Preview de ${template.name}`}
+                          alt={`Preview de template`}
                           className="h-40 w-full object-cover"
                         />
                       </div>
                     ) : null}
                     <div className="space-y-1 text-sm text-muted-foreground">
                       <div>Categoria: {template.category}</div>
-                      <div className="break-words">Arquivo: {template.fileName}.json</div>
+                      <div className="break-words">ID do modelo: {template.fileName}</div>
                     </div>
                     {template.previewText ? (
                       <div className="rounded-xl bg-slate-50 p-3 text-xs text-muted-foreground">

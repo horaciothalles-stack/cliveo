@@ -12,8 +12,16 @@ function kebab(value) {
     .replace(/(^-|-$)/g, '');
 }
 
-function normalizeCategory(rawCategory) {
-  return rawCategory.replace(/^\s*\d+\s*-\s*/, '').trim();
+function cleanText(value) {
+  if (typeof value !== 'string') return '';
+  return value
+    .replace(/&#8211;/g, '–')
+    .replace(/&#8217;/g, "'")
+    .replace(/&#8220;/g, '“')
+    .replace(/&#8221;/g, '”')
+    .replace(/&amp;/g, '&')
+    .replace(/&nbsp;/g, ' ')
+    .trim();
 }
 
 function findFirstImage(value) {
@@ -46,7 +54,7 @@ function findFirstImage(value) {
 function findFirstText(value) {
   if (typeof value === 'string') {
     const trimmed = value.trim();
-    if (trimmed.length > 0 && trimmed.length < 100) return trimmed;
+    if (trimmed.length > 0 && trimmed.length < 120) return cleanText(trimmed);
     return null;
   }
 
@@ -68,6 +76,16 @@ function findFirstText(value) {
   return null;
 }
 
+function findFirstTextSnippet(value, maxLength = 120) {
+  const text = findFirstText(value);
+  if (!text) return null;
+  return text.length <= maxLength ? text : `${text.slice(0, maxLength).trim()}…`;
+}
+
+function normalizeCategory(rawCategory) {
+  return rawCategory.replace(/^\s*\d+\s*-\s*/, '').trim();
+}
+
 function walk(dir) {
   const files = [];
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -87,7 +105,7 @@ const templates = templateFiles
   .map((templateFile) => {
     const relative = path.relative(publicTemplatesDir, templateFile);
     const rawCategory = path.dirname(relative).split(path.sep)[0] || '';
-    const category = normalizeCategory(rawCategory);
+    const category = normalizeCategory(rawCategory) || 'Geral';
     const fileName = path.basename(relative, '.json');
     let title = fileName;
     let previewImage = null;
@@ -97,10 +115,17 @@ const templates = templateFiles
       const content = fs.readFileSync(templateFile, 'utf8');
       const json = JSON.parse(content);
       if (typeof json.title === 'string' && json.title.trim().length > 0) {
-        title = json.title.trim();
+        title = cleanText(json.title.trim());
       }
-      previewImage = findFirstImage(json);
-      previewText = findFirstText(json);
+
+      const localPreviewPath = path.join(path.dirname(templateFile), `${fileName}.png`);
+      if (fs.existsSync(localPreviewPath)) {
+        previewImage = `/landing-templates/${path.relative(publicTemplatesDir, localPreviewPath).replace(/\\/g, '/')}`;
+      } else {
+        previewImage = findFirstImage(json) || null;
+      }
+
+      previewText = findFirstTextSnippet(json.content || json);
     } catch (error) {
       console.warn('Failed to parse JSON:', templateFile, error.message);
     }
@@ -112,7 +137,7 @@ const templates = templateFiles
       id,
       name: title,
       category,
-      description: `Template do tipo ${category}`,
+      description: previewText || `Página com layout personalizado para conversão e apresentação visual.`,
       publicPath,
       fileName,
       previewImage,
@@ -127,6 +152,8 @@ const content = `export interface LandingPageTemplate {
   description: string;
   publicPath: string;
   fileName: string;
+  previewImage?: string | null;
+  previewText?: string | null;
 }
 
 export const landingPageTemplates: LandingPageTemplate[] = ${JSON.stringify(templates, null, 2)};
