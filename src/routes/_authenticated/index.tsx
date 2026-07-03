@@ -85,7 +85,7 @@ function Dashboard() {
         <div className="relative flex flex-col md:flex-row md:items-end md:justify-between gap-6">
           <div className="max-w-2xl">
             <div className="inline-flex items-center gap-2 rounded-full border bg-background/60 px-3 py-1 text-xs text-muted-foreground mb-4">
-              <Sparkles className="size-3 text-[var(--brand-amber)]" />
+              <Sparkles className="size-3 text-brand-amber" />
               CLIVEO · Sistema operacional HRC
             </div>
             <h2 className="text-3xl md:text-4xl font-bold tracking-tight">
