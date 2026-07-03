@@ -30,6 +30,8 @@ type NavItem = {
   label: string;
   icon: LucideIcon;
   disabled?: boolean;
+  divider?: boolean;
+  groupLabel?: string;
 };
 
 type NavSection = {
@@ -49,6 +51,16 @@ const NAV_SECTIONS: NavSection[] = [
       { to: "/crm/empresas", label: "Empresas", icon: Building2 },
       { to: "/crm/oportunidades", label: "Oportunidades", icon: TrendingUp },
       { to: "/clientes", label: "Clientes", icon: Users },
+      { divider: true, groupLabel: "Captação", to: "", label: "Captação", icon: Sparkles, disabled: true },
+      { to: "", label: "Campanhas", icon: Sparkles, disabled: true },
+      { to: "", label: "Landing Pages", icon: Sparkles, disabled: true },
+      { to: "", label: "Formulários", icon: Sparkles, disabled: true },
+      { divider: true, groupLabel: "Relacionamento", to: "", label: "Relacionamento", icon: Sparkles, disabled: true },
+      { to: "", label: "Automações", icon: Sparkles, disabled: true },
+      { to: "", label: "Sequências", icon: Sparkles, disabled: true },
+      { to: "", label: "E-mail Marketing", icon: Sparkles, disabled: true },
+      { to: "", label: "WhatsApp", icon: Sparkles, disabled: true },
+      { divider: true, to: "", label: "Relatórios", icon: FileBarChart2, disabled: true },
     ],
   },
   {
@@ -136,7 +148,7 @@ export function Sidebar() {
               </button>
               {isOpen && (
                 <div className="space-y-1 mt-1">
-                  {section.items.map((item) => {
+                  {section.items.map((item, itemIndex) => {
                     const active = item.to
                       ? pathname === item.to || (item.to !== "/" && pathname.startsWith(`${item.to}/`))
                       : false;
@@ -159,12 +171,24 @@ export function Sidebar() {
                       </div>
                     );
 
-                    return item.to && !item.disabled ? (
-                      <Link key={item.to} to={item.to}>
-                        {content}
-                      </Link>
-                    ) : (
-                      <div key={item.label}>{content}</div>
+                    return (
+                      <div key={`${section.title}-${item.label}-${itemIndex}`}>
+                        {item.divider ? (
+                          <div className="pt-3">
+                            <div className="h-px bg-sidebar-border/80" />
+                            {item.groupLabel ? (
+                              <div className="px-4 pt-2 text-[10px] uppercase tracking-[0.28em] text-muted-foreground/70">
+                                {item.groupLabel}
+                              </div>
+                            ) : null}
+                          </div>
+                        ) : null}
+                        {!item.divider && (item.to && !item.disabled ? (
+                          <Link to={item.to}>{content}</Link>
+                        ) : (
+                          <div>{content}</div>
+                        ))}
+                      </div>
                     );
                   })}
                 </div>
