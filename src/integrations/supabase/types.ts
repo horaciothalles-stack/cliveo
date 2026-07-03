@@ -237,6 +237,60 @@ export type Database = {
           },
         ]
       }
+      landing_pages: {
+        Row: {
+          cliente_id: string | null
+          conteudo: Json | null
+          created_at: string
+          id: string
+          nome: string
+          slug: string
+          status: string
+          template_id: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          cliente_id?: string | null
+          conteudo?: Json | null
+          created_at?: string
+          id?: string
+          nome: string
+          slug: string
+          status?: string
+          template_id: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          cliente_id?: string | null
+          conteudo?: Json | null
+          created_at?: string
+          id?: string
+          nome?: string
+          slug?: string
+          status?: string
+          template_id?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "landing_pages_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "landing_pages_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       empresas: {
         Row: {
           cidade: string | null
