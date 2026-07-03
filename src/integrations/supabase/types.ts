@@ -178,6 +178,65 @@ export type Database = {
           },
         ]
       }
+      campanhas: {
+        Row: {
+          canal: string | null
+          created_at: string
+          data_fim: string | null
+          data_inicio: string | null
+          descricao: string | null
+          id: string
+          meta_leads: number | null
+          nome: string
+          notas: string | null
+          status: string
+          tipo: string
+          updated_at: string
+          budget: number | null
+          workspace_id: string
+        }
+        Insert: {
+          canal?: string | null
+          created_at?: string
+          data_fim?: string | null
+          data_inicio?: string | null
+          descricao?: string | null
+          id?: string
+          meta_leads?: number | null
+          nome: string
+          notas?: string | null
+          status?: string
+          tipo?: string
+          updated_at?: string
+          budget?: number | null
+          workspace_id: string
+        }
+        Update: {
+          canal?: string | null
+          created_at?: string
+          data_fim?: string | null
+          data_inicio?: string | null
+          descricao?: string | null
+          id?: string
+          meta_leads?: number | null
+          nome?: string
+          notas?: string | null
+          status?: string
+          tipo?: string
+          updated_at?: string
+          budget?: number | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campanhas_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       empresas: {
         Row: {
           cidade: string | null
