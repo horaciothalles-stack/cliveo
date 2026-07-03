@@ -22,6 +22,9 @@ import { Route as AuthenticatedClientesRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedBriefingRouteImport } from './routes/_authenticated/briefing'
 import { Route as AuthenticatedAuditoriaRouteImport } from './routes/_authenticated/auditoria'
 import { Route as AuthenticatedAtivosRouteImport } from './routes/_authenticated/ativos'
+import { Route as AuthenticatedCrmOportunidadesRouteImport } from './routes/_authenticated/crm/oportunidades'
+import { Route as AuthenticatedCrmLeadsRouteImport } from './routes/_authenticated/crm/leads'
+import { Route as AuthenticatedCrmEmpresasRouteImport } from './routes/_authenticated/crm/empresas'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -89,6 +92,23 @@ const AuthenticatedAtivosRoute = AuthenticatedAtivosRouteImport.update({
   path: '/ativos',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedCrmOportunidadesRoute =
+  AuthenticatedCrmOportunidadesRouteImport.update({
+    id: '/crm/oportunidades',
+    path: '/crm/oportunidades',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedCrmLeadsRoute = AuthenticatedCrmLeadsRouteImport.update({
+  id: '/crm/leads',
+  path: '/crm/leads',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedCrmEmpresasRoute =
+  AuthenticatedCrmEmpresasRouteImport.update({
+    id: '/crm/empresas',
+    path: '/crm/empresas',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
@@ -103,6 +123,9 @@ export interface FileRoutesByFullPath {
   '/refacoes': typeof AuthenticatedRefacoesRoute
   '/servicos': typeof AuthenticatedServicosRoute
   '/portal/$clienteId': typeof PortalClienteIdRoute
+  '/crm/empresas': typeof AuthenticatedCrmEmpresasRoute
+  '/crm/leads': typeof AuthenticatedCrmLeadsRoute
+  '/crm/oportunidades': typeof AuthenticatedCrmOportunidadesRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
@@ -117,6 +140,9 @@ export interface FileRoutesByTo {
   '/servicos': typeof AuthenticatedServicosRoute
   '/portal/$clienteId': typeof PortalClienteIdRoute
   '/': typeof AuthenticatedIndexRoute
+  '/crm/empresas': typeof AuthenticatedCrmEmpresasRoute
+  '/crm/leads': typeof AuthenticatedCrmLeadsRoute
+  '/crm/oportunidades': typeof AuthenticatedCrmOportunidadesRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -133,6 +159,9 @@ export interface FileRoutesById {
   '/_authenticated/servicos': typeof AuthenticatedServicosRoute
   '/portal/$clienteId': typeof PortalClienteIdRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
+  '/_authenticated/crm/empresas': typeof AuthenticatedCrmEmpresasRoute
+  '/_authenticated/crm/leads': typeof AuthenticatedCrmLeadsRoute
+  '/_authenticated/crm/oportunidades': typeof AuthenticatedCrmOportunidadesRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -149,6 +178,9 @@ export interface FileRouteTypes {
     | '/refacoes'
     | '/servicos'
     | '/portal/$clienteId'
+    | '/crm/empresas'
+    | '/crm/leads'
+    | '/crm/oportunidades'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/login'
@@ -163,6 +195,9 @@ export interface FileRouteTypes {
     | '/servicos'
     | '/portal/$clienteId'
     | '/'
+    | '/crm/empresas'
+    | '/crm/leads'
+    | '/crm/oportunidades'
   id:
     | '__root__'
     | '/_authenticated'
@@ -178,6 +213,9 @@ export interface FileRouteTypes {
     | '/_authenticated/servicos'
     | '/portal/$clienteId'
     | '/_authenticated/'
+    | '/_authenticated/crm/empresas'
+    | '/_authenticated/crm/leads'
+    | '/_authenticated/crm/oportunidades'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -279,6 +317,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAtivosRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/crm/oportunidades': {
+      id: '/_authenticated/crm/oportunidades'
+      path: '/crm/oportunidades'
+      fullPath: '/crm/oportunidades'
+      preLoaderRoute: typeof AuthenticatedCrmOportunidadesRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/crm/leads': {
+      id: '/_authenticated/crm/leads'
+      path: '/crm/leads'
+      fullPath: '/crm/leads'
+      preLoaderRoute: typeof AuthenticatedCrmLeadsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/crm/empresas': {
+      id: '/_authenticated/crm/empresas'
+      path: '/crm/empresas'
+      fullPath: '/crm/empresas'
+      preLoaderRoute: typeof AuthenticatedCrmEmpresasRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
   }
 }
 
@@ -293,6 +352,9 @@ interface AuthenticatedRouteChildren {
   AuthenticatedRefacoesRoute: typeof AuthenticatedRefacoesRoute
   AuthenticatedServicosRoute: typeof AuthenticatedServicosRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
+  AuthenticatedCrmEmpresasRoute: typeof AuthenticatedCrmEmpresasRoute
+  AuthenticatedCrmLeadsRoute: typeof AuthenticatedCrmLeadsRoute
+  AuthenticatedCrmOportunidadesRoute: typeof AuthenticatedCrmOportunidadesRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
@@ -306,6 +368,9 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedRefacoesRoute: AuthenticatedRefacoesRoute,
   AuthenticatedServicosRoute: AuthenticatedServicosRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
+  AuthenticatedCrmEmpresasRoute: AuthenticatedCrmEmpresasRoute,
+  AuthenticatedCrmLeadsRoute: AuthenticatedCrmLeadsRoute,
+  AuthenticatedCrmOportunidadesRoute: AuthenticatedCrmOportunidadesRoute,
 }
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(

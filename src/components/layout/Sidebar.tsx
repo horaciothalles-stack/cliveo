@@ -6,9 +6,13 @@ import {
 } from "lucide-react";
 import logo from "@/assets/cliveo-logo.png";
 import { cn } from "@/lib/utils";
+import { UserCheck, Building2, TrendingUp } from "lucide-react";
 
 const NAV = [
   { to: "/", label: "Visão Geral", icon: LayoutDashboard },
+  { to: "/crm/leads", label: "Leads", icon: UserCheck },
+{ to: "/crm/empresas", label: "Empresas", icon: Building2 },
+{ to: "/crm/oportunidades", label: "Oportunidades", icon: TrendingUp },
   { to: "/clientes", label: "Clientes", icon: Users },
   { to: "/projetos", label: "Projetos", icon: FolderKanban },
   { to: "/ativos", label: "Central de Ativos", icon: Layers },
