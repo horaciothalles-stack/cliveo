@@ -153,7 +153,7 @@ function OportunidadesPage() {
       {isLoading ? <p className="text-muted-foreground text-sm">Carregando…</p> : (
         <div className="flex gap-4 overflow-x-auto pb-4">
           {byStage.map(({ stage, items }) => (
-            <div key={stage.id} className="flex-shrink-0 w-72">
+            <div key={stage.id} className="shrink-0 w-72">
               <div className="flex items-center gap-2 mb-3">
                 <div className="size-2.5 rounded-full" style={{ backgroundColor: stage.cor }} />
                 <span className="text-sm font-medium">{stage.nome}</span>
