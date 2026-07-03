@@ -22,9 +22,17 @@ import { Route as AuthenticatedClientesRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedBriefingRouteImport } from './routes/_authenticated/briefing'
 import { Route as AuthenticatedAuditoriaRouteImport } from './routes/_authenticated/auditoria'
 import { Route as AuthenticatedAtivosRouteImport } from './routes/_authenticated/ativos'
+import { Route as AuthenticatedCrmWhatsappRouteImport } from './routes/_authenticated/crm/whatsapp'
+import { Route as AuthenticatedCrmSequenciasRouteImport } from './routes/_authenticated/crm/sequencias'
+import { Route as AuthenticatedCrmRelatoriosRouteImport } from './routes/_authenticated/crm/relatorios'
 import { Route as AuthenticatedCrmOportunidadesRouteImport } from './routes/_authenticated/crm/oportunidades'
 import { Route as AuthenticatedCrmLeadsRouteImport } from './routes/_authenticated/crm/leads'
+import { Route as AuthenticatedCrmLandingPagesRouteImport } from './routes/_authenticated/crm/landing-pages'
+import { Route as AuthenticatedCrmFormulariosRouteImport } from './routes/_authenticated/crm/formularios'
 import { Route as AuthenticatedCrmEmpresasRouteImport } from './routes/_authenticated/crm/empresas'
+import { Route as AuthenticatedCrmEmailMarketingRouteImport } from './routes/_authenticated/crm/email-marketing'
+import { Route as AuthenticatedCrmCampanhasRouteImport } from './routes/_authenticated/crm/campanhas'
+import { Route as AuthenticatedCrmAutomacoesRouteImport } from './routes/_authenticated/crm/automacoes'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -92,6 +100,24 @@ const AuthenticatedAtivosRoute = AuthenticatedAtivosRouteImport.update({
   path: '/ativos',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedCrmWhatsappRoute =
+  AuthenticatedCrmWhatsappRouteImport.update({
+    id: '/crm/whatsapp',
+    path: '/crm/whatsapp',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedCrmSequenciasRoute =
+  AuthenticatedCrmSequenciasRouteImport.update({
+    id: '/crm/sequencias',
+    path: '/crm/sequencias',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedCrmRelatoriosRoute =
+  AuthenticatedCrmRelatoriosRouteImport.update({
+    id: '/crm/relatorios',
+    path: '/crm/relatorios',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedCrmOportunidadesRoute =
   AuthenticatedCrmOportunidadesRouteImport.update({
     id: '/crm/oportunidades',
@@ -103,10 +129,40 @@ const AuthenticatedCrmLeadsRoute = AuthenticatedCrmLeadsRouteImport.update({
   path: '/crm/leads',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedCrmLandingPagesRoute =
+  AuthenticatedCrmLandingPagesRouteImport.update({
+    id: '/crm/landing-pages',
+    path: '/crm/landing-pages',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedCrmFormulariosRoute =
+  AuthenticatedCrmFormulariosRouteImport.update({
+    id: '/crm/formularios',
+    path: '/crm/formularios',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedCrmEmpresasRoute =
   AuthenticatedCrmEmpresasRouteImport.update({
     id: '/crm/empresas',
     path: '/crm/empresas',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedCrmEmailMarketingRoute =
+  AuthenticatedCrmEmailMarketingRouteImport.update({
+    id: '/crm/email-marketing',
+    path: '/crm/email-marketing',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedCrmCampanhasRoute =
+  AuthenticatedCrmCampanhasRouteImport.update({
+    id: '/crm/campanhas',
+    path: '/crm/campanhas',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedCrmAutomacoesRoute =
+  AuthenticatedCrmAutomacoesRouteImport.update({
+    id: '/crm/automacoes',
+    path: '/crm/automacoes',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
 
@@ -123,9 +179,17 @@ export interface FileRoutesByFullPath {
   '/refacoes': typeof AuthenticatedRefacoesRoute
   '/servicos': typeof AuthenticatedServicosRoute
   '/portal/$clienteId': typeof PortalClienteIdRoute
+  '/crm/automacoes': typeof AuthenticatedCrmAutomacoesRoute
+  '/crm/campanhas': typeof AuthenticatedCrmCampanhasRoute
+  '/crm/email-marketing': typeof AuthenticatedCrmEmailMarketingRoute
   '/crm/empresas': typeof AuthenticatedCrmEmpresasRoute
+  '/crm/formularios': typeof AuthenticatedCrmFormulariosRoute
+  '/crm/landing-pages': typeof AuthenticatedCrmLandingPagesRoute
   '/crm/leads': typeof AuthenticatedCrmLeadsRoute
   '/crm/oportunidades': typeof AuthenticatedCrmOportunidadesRoute
+  '/crm/relatorios': typeof AuthenticatedCrmRelatoriosRoute
+  '/crm/sequencias': typeof AuthenticatedCrmSequenciasRoute
+  '/crm/whatsapp': typeof AuthenticatedCrmWhatsappRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
@@ -140,9 +204,17 @@ export interface FileRoutesByTo {
   '/servicos': typeof AuthenticatedServicosRoute
   '/portal/$clienteId': typeof PortalClienteIdRoute
   '/': typeof AuthenticatedIndexRoute
+  '/crm/automacoes': typeof AuthenticatedCrmAutomacoesRoute
+  '/crm/campanhas': typeof AuthenticatedCrmCampanhasRoute
+  '/crm/email-marketing': typeof AuthenticatedCrmEmailMarketingRoute
   '/crm/empresas': typeof AuthenticatedCrmEmpresasRoute
+  '/crm/formularios': typeof AuthenticatedCrmFormulariosRoute
+  '/crm/landing-pages': typeof AuthenticatedCrmLandingPagesRoute
   '/crm/leads': typeof AuthenticatedCrmLeadsRoute
   '/crm/oportunidades': typeof AuthenticatedCrmOportunidadesRoute
+  '/crm/relatorios': typeof AuthenticatedCrmRelatoriosRoute
+  '/crm/sequencias': typeof AuthenticatedCrmSequenciasRoute
+  '/crm/whatsapp': typeof AuthenticatedCrmWhatsappRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -159,9 +231,17 @@ export interface FileRoutesById {
   '/_authenticated/servicos': typeof AuthenticatedServicosRoute
   '/portal/$clienteId': typeof PortalClienteIdRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
+  '/_authenticated/crm/automacoes': typeof AuthenticatedCrmAutomacoesRoute
+  '/_authenticated/crm/campanhas': typeof AuthenticatedCrmCampanhasRoute
+  '/_authenticated/crm/email-marketing': typeof AuthenticatedCrmEmailMarketingRoute
   '/_authenticated/crm/empresas': typeof AuthenticatedCrmEmpresasRoute
+  '/_authenticated/crm/formularios': typeof AuthenticatedCrmFormulariosRoute
+  '/_authenticated/crm/landing-pages': typeof AuthenticatedCrmLandingPagesRoute
   '/_authenticated/crm/leads': typeof AuthenticatedCrmLeadsRoute
   '/_authenticated/crm/oportunidades': typeof AuthenticatedCrmOportunidadesRoute
+  '/_authenticated/crm/relatorios': typeof AuthenticatedCrmRelatoriosRoute
+  '/_authenticated/crm/sequencias': typeof AuthenticatedCrmSequenciasRoute
+  '/_authenticated/crm/whatsapp': typeof AuthenticatedCrmWhatsappRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -178,9 +258,17 @@ export interface FileRouteTypes {
     | '/refacoes'
     | '/servicos'
     | '/portal/$clienteId'
+    | '/crm/automacoes'
+    | '/crm/campanhas'
+    | '/crm/email-marketing'
     | '/crm/empresas'
+    | '/crm/formularios'
+    | '/crm/landing-pages'
     | '/crm/leads'
     | '/crm/oportunidades'
+    | '/crm/relatorios'
+    | '/crm/sequencias'
+    | '/crm/whatsapp'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/login'
@@ -195,9 +283,17 @@ export interface FileRouteTypes {
     | '/servicos'
     | '/portal/$clienteId'
     | '/'
+    | '/crm/automacoes'
+    | '/crm/campanhas'
+    | '/crm/email-marketing'
     | '/crm/empresas'
+    | '/crm/formularios'
+    | '/crm/landing-pages'
     | '/crm/leads'
     | '/crm/oportunidades'
+    | '/crm/relatorios'
+    | '/crm/sequencias'
+    | '/crm/whatsapp'
   id:
     | '__root__'
     | '/_authenticated'
@@ -213,9 +309,17 @@ export interface FileRouteTypes {
     | '/_authenticated/servicos'
     | '/portal/$clienteId'
     | '/_authenticated/'
+    | '/_authenticated/crm/automacoes'
+    | '/_authenticated/crm/campanhas'
+    | '/_authenticated/crm/email-marketing'
     | '/_authenticated/crm/empresas'
+    | '/_authenticated/crm/formularios'
+    | '/_authenticated/crm/landing-pages'
     | '/_authenticated/crm/leads'
     | '/_authenticated/crm/oportunidades'
+    | '/_authenticated/crm/relatorios'
+    | '/_authenticated/crm/sequencias'
+    | '/_authenticated/crm/whatsapp'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -317,6 +421,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAtivosRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/crm/whatsapp': {
+      id: '/_authenticated/crm/whatsapp'
+      path: '/crm/whatsapp'
+      fullPath: '/crm/whatsapp'
+      preLoaderRoute: typeof AuthenticatedCrmWhatsappRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/crm/sequencias': {
+      id: '/_authenticated/crm/sequencias'
+      path: '/crm/sequencias'
+      fullPath: '/crm/sequencias'
+      preLoaderRoute: typeof AuthenticatedCrmSequenciasRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/crm/relatorios': {
+      id: '/_authenticated/crm/relatorios'
+      path: '/crm/relatorios'
+      fullPath: '/crm/relatorios'
+      preLoaderRoute: typeof AuthenticatedCrmRelatoriosRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/crm/oportunidades': {
       id: '/_authenticated/crm/oportunidades'
       path: '/crm/oportunidades'
@@ -331,11 +456,46 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCrmLeadsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/crm/landing-pages': {
+      id: '/_authenticated/crm/landing-pages'
+      path: '/crm/landing-pages'
+      fullPath: '/crm/landing-pages'
+      preLoaderRoute: typeof AuthenticatedCrmLandingPagesRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/crm/formularios': {
+      id: '/_authenticated/crm/formularios'
+      path: '/crm/formularios'
+      fullPath: '/crm/formularios'
+      preLoaderRoute: typeof AuthenticatedCrmFormulariosRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/crm/empresas': {
       id: '/_authenticated/crm/empresas'
       path: '/crm/empresas'
       fullPath: '/crm/empresas'
       preLoaderRoute: typeof AuthenticatedCrmEmpresasRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/crm/email-marketing': {
+      id: '/_authenticated/crm/email-marketing'
+      path: '/crm/email-marketing'
+      fullPath: '/crm/email-marketing'
+      preLoaderRoute: typeof AuthenticatedCrmEmailMarketingRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/crm/campanhas': {
+      id: '/_authenticated/crm/campanhas'
+      path: '/crm/campanhas'
+      fullPath: '/crm/campanhas'
+      preLoaderRoute: typeof AuthenticatedCrmCampanhasRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/crm/automacoes': {
+      id: '/_authenticated/crm/automacoes'
+      path: '/crm/automacoes'
+      fullPath: '/crm/automacoes'
+      preLoaderRoute: typeof AuthenticatedCrmAutomacoesRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
   }
@@ -352,9 +512,17 @@ interface AuthenticatedRouteChildren {
   AuthenticatedRefacoesRoute: typeof AuthenticatedRefacoesRoute
   AuthenticatedServicosRoute: typeof AuthenticatedServicosRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
+  AuthenticatedCrmAutomacoesRoute: typeof AuthenticatedCrmAutomacoesRoute
+  AuthenticatedCrmCampanhasRoute: typeof AuthenticatedCrmCampanhasRoute
+  AuthenticatedCrmEmailMarketingRoute: typeof AuthenticatedCrmEmailMarketingRoute
   AuthenticatedCrmEmpresasRoute: typeof AuthenticatedCrmEmpresasRoute
+  AuthenticatedCrmFormulariosRoute: typeof AuthenticatedCrmFormulariosRoute
+  AuthenticatedCrmLandingPagesRoute: typeof AuthenticatedCrmLandingPagesRoute
   AuthenticatedCrmLeadsRoute: typeof AuthenticatedCrmLeadsRoute
   AuthenticatedCrmOportunidadesRoute: typeof AuthenticatedCrmOportunidadesRoute
+  AuthenticatedCrmRelatoriosRoute: typeof AuthenticatedCrmRelatoriosRoute
+  AuthenticatedCrmSequenciasRoute: typeof AuthenticatedCrmSequenciasRoute
+  AuthenticatedCrmWhatsappRoute: typeof AuthenticatedCrmWhatsappRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
@@ -368,9 +536,17 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedRefacoesRoute: AuthenticatedRefacoesRoute,
   AuthenticatedServicosRoute: AuthenticatedServicosRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
+  AuthenticatedCrmAutomacoesRoute: AuthenticatedCrmAutomacoesRoute,
+  AuthenticatedCrmCampanhasRoute: AuthenticatedCrmCampanhasRoute,
+  AuthenticatedCrmEmailMarketingRoute: AuthenticatedCrmEmailMarketingRoute,
   AuthenticatedCrmEmpresasRoute: AuthenticatedCrmEmpresasRoute,
+  AuthenticatedCrmFormulariosRoute: AuthenticatedCrmFormulariosRoute,
+  AuthenticatedCrmLandingPagesRoute: AuthenticatedCrmLandingPagesRoute,
   AuthenticatedCrmLeadsRoute: AuthenticatedCrmLeadsRoute,
   AuthenticatedCrmOportunidadesRoute: AuthenticatedCrmOportunidadesRoute,
+  AuthenticatedCrmRelatoriosRoute: AuthenticatedCrmRelatoriosRoute,
+  AuthenticatedCrmSequenciasRoute: AuthenticatedCrmSequenciasRoute,
+  AuthenticatedCrmWhatsappRoute: AuthenticatedCrmWhatsappRoute,
 }
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
