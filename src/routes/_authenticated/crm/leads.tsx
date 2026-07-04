@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -13,10 +14,13 @@ import {
 } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { CalendarDays, Mail, MessageCircleMore, Network, Sparkles, TrendingUp, Upload, MoreHorizontal, Plus, Search } from "lucide-react";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/crm/leads")({
   component: LeadsPage,
@@ -38,6 +42,12 @@ interface Lead {
   whatsapp?: string;
   linkedin?: string;
   notes?: string;
+}
+
+interface LeadFormState {
+  name: string;
+  origin: LeadOrigin | "";
+  temperature: LeadTemperature | "";
 }
 
 const initialLeads: Lead[] = [
@@ -96,10 +106,79 @@ const initialLeads: Lead[] = [
 
 function LeadsPage() {
   const [search, setSearch] = useState("");
-  const [leads] = useState<Lead[]>(initialLeads);
+  const [leads, setLeads] = useState<Lead[]>(initialLeads);
+  const [isLoading, setIsLoading] = useState(true);
   const [isImportOpen, setIsImportOpen] = useState(false);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+  const [formState, setFormState] = useState<LeadFormState>({
+    name: "",
+    origin: "",
+    temperature: "",
+  });
+
+  const loadLeads = async () => {
+    setIsLoading(true);
+
+    const { data, error } = await supabase
+      .from("companies")
+      .select("id, name")
+      .eq("status", "lead")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error(error);
+      toast.error("Não foi possível carregar os leads.");
+      setIsLoading(false);
+      return;
+    }
+
+    const mappedLeads: Lead[] = (data ?? []).map((item) => ({
+      id: item.id,
+      name: item.name,
+      company: undefined,
+      origin: "Manual",
+      temperature: "Frio",
+      lastInteraction: "Recém adicionado",
+      email: undefined,
+      whatsapp: undefined,
+      linkedin: undefined,
+      notes: undefined,
+    }));
+
+    setLeads(mappedLeads);
+    setIsLoading(false);
+  };
+
+  useEffect(() => {
+    void loadLeads();
+  }, []);
+
+  const handleCreateLead = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (!formState.name.trim()) {
+      toast.error("Informe o nome do lead.");
+      return;
+    }
+
+    const { error } = await supabase.from("companies").insert({
+      name: formState.name.trim(),
+      status: "lead",
+    });
+
+    if (error) {
+      console.error(error);
+      toast.error("Não foi possível criar o lead.");
+      return;
+    }
+
+    toast.success("Lead criado com sucesso.");
+    setFormState({ name: "", origin: "", temperature: "" });
+    setIsCreateOpen(false);
+    void loadLeads();
+  };
 
   const filteredLeads = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -131,11 +210,76 @@ function LeadsPage() {
           <Button variant="outline" onClick={() => setIsImportOpen(true)}>
             <Upload className="mr-1 size-4" /> Importar CSV
           </Button>
-          <Button className="brand-gradient border-0 text-black hover:opacity-90">
+          <Button className="brand-gradient border-0 text-black hover:opacity-90" onClick={() => setIsCreateOpen(true)}>
             <Plus className="mr-1 size-4" /> Novo Lead
           </Button>
         </div>
       </div>
+
+      <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Novo Lead</DialogTitle>
+            <DialogDescription>Cadastre um novo lead diretamente no CRM.</DialogDescription>
+          </DialogHeader>
+
+          <form className="space-y-4" onSubmit={handleCreateLead}>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Nome do Lead</label>
+              <Input
+                value={formState.name}
+                onChange={(event) => setFormState((current) => ({ ...current, name: event.target.value }))}
+                placeholder="Ex: Ana Paula Costa"
+              />
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Origem</label>
+                <Select
+                  value={formState.origin}
+                  onValueChange={(value) => setFormState((current) => ({ ...current, origin: value as LeadOrigin | "" }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecionar" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Landing Page">Landing Page</SelectItem>
+                    <SelectItem value="Meta Ads">Meta Ads</SelectItem>
+                    <SelectItem value="WhatsApp">WhatsApp</SelectItem>
+                    <SelectItem value="Indicação">Indicação</SelectItem>
+                    <SelectItem value="Manual">Manual</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Temperatura</label>
+                <Select
+                  value={formState.temperature}
+                  onValueChange={(value) => setFormState((current) => ({ ...current, temperature: value as LeadTemperature | "" }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecionar" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Frio">Frio</SelectItem>
+                    <SelectItem value="Morno">Morno</SelectItem>
+                    <SelectItem value="Quente">Quente</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIsCreateOpen(false)}>
+                Cancelar
+              </Button>
+              <Button type="submit">Criar Lead</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={isImportOpen} onOpenChange={setIsImportOpen}>
         <DialogContent className="sm:max-w-lg">
@@ -264,6 +408,13 @@ function LeadsPage() {
         </SheetContent>
       </Sheet>
 
+      {isLoading ? (
+        <div className="space-y-3 rounded-xl border bg-background p-4">
+          <Skeleton className="h-8 w-full" />
+          <Skeleton className="h-8 w-full" />
+          <Skeleton className="h-8 w-full" />
+        </div>
+      ) : (
       <div className="rounded-xl border bg-background">
         <Table>
           <TableHeader>
@@ -318,6 +469,7 @@ function LeadsPage() {
           </TableBody>
         </Table>
       </div>
+      )}
     </AppLayout>
   );
 }
