@@ -1,430 +1,171 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { useMemo, useState } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Search, Pencil, Trash2, Megaphone } from "lucide-react";
-import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Radar, Search, Sparkles } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/crm/campanhas")({
   component: CampanhasPage,
 });
 
-const WS = "00000000-0000-0000-0000-000000000001";
-
-const STATUS_OPTS = [
-  { value: "planejada", label: "Planejada", badge: "bg-slate-500/10 text-slate-400" },
-  { value: "ativa", label: "Ativa", badge: "bg-emerald-500/10 text-emerald-400" },
-  { value: "pausada", label: "Pausada", badge: "bg-amber-500/10 text-amber-400" },
-  { value: "finalizada", label: "Finalizada", badge: "bg-violet-500/10 text-violet-400" },
-];
-
-const CANAL_OPTS = [
-  { value: "meta", label: "Meta" },
-  { value: "google", label: "Google" },
-  { value: "instagram", label: "Instagram" },
-  { value: "linkedin", label: "LinkedIn" },
-  { value: "email", label: "E-mail" },
-];
-
-const TIPO_OPTS = [
-  { value: "ads", label: "Anúncios" },
-  { value: "conteudo", label: "Conteúdo" },
-  { value: "branding", label: "Branding" },
-  { value: "landing_page", label: "Landing Page" },
-  { value: "email", label: "E-mail" },
-];
-
-interface Campanha {
+interface ProspectionResult {
   id: string;
-  workspace_id: string;
-  nome: string;
-  descricao?: string;
-  tipo: string;
-  canal?: string;
-  status: string;
-  budget?: number | null;
-  meta_leads?: number | null;
-  data_inicio?: string | null;
-  data_fim?: string | null;
-  notas?: string | null;
-  created_at: string;
+  company: string;
+  address: string;
+  phone: string;
+  email: string;
+  website: string;
 }
 
-const EMPTY = {
-  nome: "",
-  descricao: "",
-  tipo: "ads",
-  canal: "meta",
-  status: "planejada",
-  budget: "",
-  meta_leads: "",
-  data_inicio: "",
-  data_fim: "",
-  notas: "",
-};
-
-function fmtCurrency(value?: number | null) {
-  if (value === undefined || value === null) return "-";
-  return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-}
+const mockResults: ProspectionResult[] = [
+  {
+    id: "1",
+    company: "Clínica Bela Pele",
+    address: "Rua das Flores, 120 — São Paulo, SP",
+    phone: "(11) 99999-1111",
+    email: "contato@belapele.com.br",
+    website: "https://belapele.com.br",
+  },
+  {
+    id: "2",
+    company: "Estética Vita Premium",
+    address: "Av. Paulista, 2020 — São Paulo, SP",
+    phone: "(11) 98888-2222",
+    email: "vitas@vitapremium.com",
+    website: "https://vitapremium.com",
+  },
+  {
+    id: "3",
+    company: "Médica & Estética",
+    address: "Rua Augusta, 500 — São Paulo, SP",
+    phone: "(11) 97777-3333",
+    email: "atendimento@medicaestetica.com",
+    website: "https://medicaestetica.com",
+  },
+];
 
 function CampanhasPage() {
-  const qc = useQueryClient();
-  const [search, setSearch] = useState("");
-  const [filterStatus, setFilterStatus] = useState("todos");
-  const [open, setOpen] = useState(false);
-  const [editing, setEditing] = useState<Campanha | null>(null);
-  const [form, setForm] = useState(EMPTY);
-  const [confirmDelete, setConfirmDelete] = useState<Campanha | null>(null);
+  const [keyword, setKeyword] = useState("Clínicas de Estética");
+  const [location, setLocation] = useState("São Paulo, SP");
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [results] = useState<ProspectionResult[]>(mockResults);
 
-  const { data: campanhas = [], isLoading } = useQuery({
-    queryKey: ["campanhas"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("campanhas")
-        .select("*")
-        .eq("workspace_id", WS)
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data as Campanha[];
-    },
-  });
+  const filteredResults = useMemo(() => {
+    const query = `${keyword} ${location}`.toLowerCase();
+    if (!query.trim()) return results;
 
-  const upsert = useMutation({
-    mutationFn: async (payload: typeof EMPTY & { id?: string }) => {
-      const row = {
-        workspace_id: WS,
-        nome: payload.nome.trim(),
-        descricao: payload.descricao || null,
-        tipo: payload.tipo,
-        canal: payload.canal || null,
-        status: payload.status,
-        budget: payload.budget ? Number(payload.budget) : null,
-        meta_leads: payload.meta_leads ? Number(payload.meta_leads) : null,
-        data_inicio: payload.data_inicio || null,
-        data_fim: payload.data_fim || null,
-        notas: payload.notas || null,
-      };
-
-      if (payload.id) {
-        const { error } = await supabase.from("campanhas").update(row).eq("id", payload.id);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.from("campanhas").insert(row);
-        if (error) throw error;
-      }
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["campanhas"] });
-      toast.success(editing ? "Campanha atualizada" : "Campanha criada");
-      setOpen(false);
-      setEditing(null);
-      setForm(EMPTY);
-    },
-    onError: (error: Error) => toast.error(error.message),
-  });
-
-  const remove = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("campanhas").delete().eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["campanhas"] });
-      toast.success("Campanha removida");
-      setConfirmDelete(null);
-    },
-    onError: (error: Error) => toast.error(error.message),
-  });
-
-  const openNew = () => {
-    setEditing(null);
-    setForm(EMPTY);
-    setOpen(true);
-  };
-
-  const openEdit = (campanha: Campanha) => {
-    setEditing(campanha);
-    setForm({
-      nome: campanha.nome,
-      descricao: campanha.descricao ?? "",
-      tipo: campanha.tipo,
-      canal: campanha.canal ?? "meta",
-      status: campanha.status,
-      budget: campanha.budget?.toString() ?? "",
-      meta_leads: campanha.meta_leads?.toString() ?? "",
-      data_inicio: campanha.data_inicio ?? "",
-      data_fim: campanha.data_fim ?? "",
-      notas: campanha.notas ?? "",
+    return results.filter((item) => {
+      return [item.company, item.address, item.phone, item.email, item.website]
+        .join(" ")
+        .toLowerCase()
+        .includes(query);
     });
-    setOpen(true);
-  };
+  }, [keyword, location, results]);
 
-  const filtered = campanhas.filter((item) => {
-    const q = search.toLowerCase();
-    const matchText =
-      !q ||
-      item.nome.toLowerCase().includes(q) ||
-      (item.descricao ?? "").toLowerCase().includes(q) ||
-      item.canal?.toLowerCase().includes(q) ||
-      item.tipo.toLowerCase().includes(q);
-    const matchStatus = filterStatus === "todos" || item.status === filterStatus;
-    return matchText && matchStatus;
-  });
+  const toggleSelection = (id: string) => {
+    setSelectedIds((current) =>
+      current.includes(id) ? current.filter((item) => item !== id) : [...current, id],
+    );
+  };
 
   return (
-    <AppLayout title="Campanhas" subtitle="Gestão de campanhas de captação">
-      <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between mb-6">
-        <div className="flex-1 grid gap-3 sm:grid-cols-[minmax(180px,1fr)_200px]">
-          <div className="relative">
-            <Search className="size-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="Buscar campanha…"
-              className="pl-9"
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-            />
+    <AppLayout title="Radar de Prospecção" subtitle="Ferramenta de busca e qualificação de prospects">
+      <Card className="mb-6 border-primary/20 bg-linear-to-br from-background via-background to-primary/5">
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <div className="rounded-full bg-primary/10 p-2 text-primary">
+              <Radar className="size-4" />
+            </div>
+            <div>
+              <CardTitle>Pesquisa de Empresas</CardTitle>
+              <CardDescription>Busque nichos e localizações com um fluxo inspirado em ferramentas de growth.</CardDescription>
+            </div>
           </div>
-          <Select value={filterStatus} onValueChange={setFilterStatus}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todos</SelectItem>
-              {STATUS_OPTS.map((opt) => (
-                <SelectItem key={opt.value} value={opt.value}>
-                  {opt.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <Button onClick={openNew} className="brand-gradient text-black border-0 hover:opacity-90">
-          <Plus className="size-4 mr-1" /> Nova campanha
-        </Button>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Nicho / Palavra-chave</label>
+              <Input
+                placeholder="Ex: Clínicas de Estética"
+                value={keyword}
+                onChange={(event) => setKeyword(event.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Localização</label>
+              <Input
+                placeholder="Ex: São Paulo, SP"
+                value={location}
+                onChange={(event) => setLocation(event.target.value)}
+              />
+            </div>
+          </div>
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Sparkles className="size-4" />
+              Resultado simulado para prototipagem visual.
+            </div>
+            <Button className="brand-gradient border-0 text-black hover:opacity-90">
+              <Search className="mr-1 size-4" /> Iniciar Varredura
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="mb-4 flex items-center justify-between">
+        <h3 className="text-lg font-semibold">Resultados da Varredura</h3>
+        {selectedIds.length > 0 ? (
+          <Button variant="outline">
+            Adicionar {selectedIds.length} leads ao CRM
+          </Button>
+        ) : null}
       </div>
 
-      {isLoading ? (
-        <p className="text-sm text-muted-foreground">Carregando…</p>
-      ) : filtered.length === 0 ? (
-        <Card>
-          <CardContent className="py-16 text-center">
-            <h3 className="font-semibold">Nenhuma campanha encontrada</h3>
-            <p className="text-sm text-muted-foreground mt-1">Crie a primeira campanha para começar.</p>
-            <Button onClick={openNew} className="mt-4 brand-gradient text-black border-0">
-              <Plus className="size-4 mr-1" /> Criar campanha
-            </Button>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {filtered.map((campanha) => {
-            const statusOpt = STATUS_OPTS.find((opt) => opt.value === campanha.status);
-            return (
-              <Card key={campanha.id} className="group hover:border-primary/50 transition-colors">
-                <CardContent className="p-4">
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <div className="font-semibold truncate">{campanha.nome}</div>
-                      <div className="text-xs text-muted-foreground mt-1 truncate">{campanha.tipo} • {campanha.canal}</div>
-                    </div>
-                    {statusOpt ? (
-                      <Badge className={`text-[10px] ${statusOpt.badge}`}>{statusOpt.label}</Badge>
-                    ) : null}
-                  </div>
-
-                  <div className="mt-4 space-y-2 text-sm text-muted-foreground">
-                    {campanha.budget ? (
-                      <div>Budget: {fmtCurrency(campanha.budget)}</div>
-                    ) : null}
-                    {campanha.meta_leads ? <div>Meta de leads: {campanha.meta_leads}</div> : null}
-                    {campanha.data_inicio || campanha.data_fim ? (
-                      <div>
-                        {campanha.data_inicio ? `Início: ${campanha.data_inicio}` : ""}
-                        {campanha.data_inicio && campanha.data_fim ? " · " : ""}
-                        {campanha.data_fim ? `Fim: ${campanha.data_fim}` : ""}
-                      </div>
-                    ) : null}
-                  </div>
-
-                  <div className="flex flex-wrap gap-2 mt-4">
-                    {campanha.descricao ? <Badge variant="outline" className="text-[10px]">Descrição</Badge> : null}
-                    {campanha.meta_leads ? <Badge variant="outline" className="text-[10px]">Leads</Badge> : null}
-                  </div>
-
-                  <div className="flex justify-end gap-1 mt-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Button variant="ghost" size="icon" className="size-7" onClick={() => openEdit(campanha)}>
-                      <Pencil className="size-3.5" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="size-7 text-destructive hover:text-destructive"
-                      onClick={() => setConfirmDelete(campanha)}
-                    >
-                      <Trash2 className="size-3.5" />
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-      )}
-
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{editing ? "Editar campanha" : "Nova campanha"}</DialogTitle>
-            <DialogDescription>Crie ou atualize campanhas de captação.</DialogDescription>
-          </DialogHeader>
-          <form
-            className="grid gap-4"
-            onSubmit={(event) => {
-              event.preventDefault();
-              if (!form.nome.trim()) return toast.error("Nome é obrigatório");
-              upsert.mutate({ ...form, id: editing?.id });
-            }}
-          >
-            <div className="grid sm:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label>Nome *</Label>
-                <Input value={form.nome} onChange={(event) => setForm({ ...form, nome: event.target.value })} required />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Status</Label>
-                <Select value={form.status} onValueChange={(value) => setForm({ ...form, status: value })}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {STATUS_OPTS.map((status) => (
-                      <SelectItem key={status.value} value={status.value}>
-                        {status.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="grid sm:grid-cols-3 gap-4">
-              <div className="space-y-1.5">
-                <Label>Tipo</Label>
-                <Select value={form.tipo} onValueChange={(value) => setForm({ ...form, tipo: value })}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {TIPO_OPTS.map((tipo) => (
-                      <SelectItem key={tipo.value} value={tipo.value}>
-                        {tipo.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <Label>Canal</Label>
-                <Select value={form.canal} onValueChange={(value) => setForm({ ...form, canal: value })}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {CANAL_OPTS.map((canal) => (
-                      <SelectItem key={canal.value} value={canal.value}>
-                        {canal.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <Label>Budget (R$)</Label>
-                <Input
-                  type="number"
-                  min={0}
-                  step={0.01}
-                  value={form.budget}
-                  onChange={(event) => setForm({ ...form, budget: event.target.value })}
-                />
-              </div>
-            </div>
-
-            <div className="grid sm:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label>Meta de leads</Label>
-                <Input
-                  type="number"
-                  min={0}
-                  value={form.meta_leads}
-                  onChange={(event) => setForm({ ...form, meta_leads: event.target.value })}
-                />
-              </div>
-              <div className="grid sm:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <Label>Data de início</Label>
-                  <Input
-                    type="date"
-                    value={form.data_inicio}
-                    onChange={(event) => setForm({ ...form, data_inicio: event.target.value })}
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Data de fim</Label>
-                  <Input
-                    type="date"
-                    value={form.data_fim}
-                    onChange={(event) => setForm({ ...form, data_fim: event.target.value })}
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label>Descrição</Label>
-              <Textarea rows={4} value={form.descricao} onChange={(event) => setForm({ ...form, descricao: event.target.value })} />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Notas</Label>
-              <Textarea rows={3} value={form.notas} onChange={(event) => setForm({ ...form, notas: event.target.value })} />
-            </div>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-                Cancelar
-              </Button>
-              <Button type="submit" disabled={upsert.isPending} className="brand-gradient text-black border-0">
-                {upsert.isPending ? "Salvando…" : editing ? "Salvar" : "Criar campanha"}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      <AlertDialog open={!!confirmDelete} onOpenChange={(openState) => !openState && setConfirmDelete(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Excluir {confirmDelete?.nome}?</AlertDialogTitle>
-            <AlertDialogDescription>Esta ação não pode ser desfeita.</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={() => confirmDelete && remove.mutate(confirmDelete.id)} className="bg-destructive text-destructive-foreground">
-              Excluir
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <div className="rounded-xl border bg-background">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-10" />
+              <TableHead>Empresa</TableHead>
+              <TableHead>Endereço</TableHead>
+              <TableHead>Telefone</TableHead>
+              <TableHead>E-mail</TableHead>
+              <TableHead>Website</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filteredResults.map((item) => {
+              const isSelected = selectedIds.includes(item.id);
+              return (
+                <TableRow key={item.id}>
+                  <TableCell>
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={() => toggleSelection(item.id)}
+                      className="size-4 rounded border-border"
+                    />
+                  </TableCell>
+                  <TableCell className="font-medium">{item.company}</TableCell>
+                  <TableCell>{item.address}</TableCell>
+                  <TableCell>{item.phone}</TableCell>
+                  <TableCell>{item.email}</TableCell>
+                  <TableCell>
+                    <a href={item.website} target="_blank" rel="noreferrer" className="text-primary hover:underline">
+                      {item.website}
+                    </a>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </div>
     </AppLayout>
   );
 }
