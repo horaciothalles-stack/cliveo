@@ -13,8 +13,10 @@ import {
 } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
+import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { MoreHorizontal, Plus, Search, Upload } from "lucide-react";
+import { CalendarDays, Mail, MessageCircleMore, Network, Sparkles, TrendingUp, Upload, MoreHorizontal, Plus, Search } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/crm/leads")({
   component: LeadsPage,
@@ -28,9 +30,14 @@ interface Lead {
   id: string;
   name: string;
   company?: string;
+  role?: string;
   origin: LeadOrigin;
   temperature: LeadTemperature;
   lastInteraction: string;
+  email?: string;
+  whatsapp?: string;
+  linkedin?: string;
+  notes?: string;
 }
 
 const initialLeads: Lead[] = [
@@ -38,32 +45,52 @@ const initialLeads: Lead[] = [
     id: "1",
     name: "Ana Paula Costa",
     company: "Studio Norte",
+    role: "Fundadora",
     origin: "Landing Page",
     temperature: "Quente",
     lastInteraction: "Hoje · 14:20",
+    email: "ana@studionorte.com.br",
+    whatsapp: "+55 11 99999-1111",
+    linkedin: "linkedin.com/in/anapaulacosta",
+    notes: "Interessada em posicionamento premium e automação de atendimento.",
   },
   {
     id: "2",
     name: "Carlos Mendes",
     company: "Mundo Digital",
+    role: "Diretor Comercial",
     origin: "Meta Ads",
     temperature: "Morno",
     lastInteraction: "Ontem · 18:40",
+    email: "carlos@mundo.digital",
+    whatsapp: "+55 21 98888-2222",
+    linkedin: "linkedin.com/in/carlosmendes",
+    notes: "Precisa de uma operação mais enxuta para captar clientes e nutrir leads.",
   },
   {
     id: "3",
     name: "Beatriz Silva",
     company: "Casa Bela",
+    role: "CEO",
     origin: "WhatsApp",
     temperature: "Frio",
     lastInteraction: "Há 3 dias",
+    email: "beatriz@casabela.com",
+    whatsapp: "+55 31 97777-3333",
+    linkedin: "linkedin.com/in/beatrizsilva",
+    notes: "Ainda está avaliando o mercado e priorizando transformação digital.",
   },
   {
     id: "4",
     name: "Rafael Torres",
+    role: "Sócio",
     origin: "Indicação",
     temperature: "Quente",
     lastInteraction: "Hoje · 09:10",
+    email: "rafael@torres.com.br",
+    whatsapp: "+55 11 96666-4444",
+    linkedin: "linkedin.com/in/rafael-torres",
+    notes: "Quase fechando uma parceria e precisa de uma proposta objetiva.",
   },
 ];
 
@@ -72,6 +99,7 @@ function LeadsPage() {
   const [leads] = useState<Lead[]>(initialLeads);
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
 
   const filteredLeads = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -143,6 +171,99 @@ function LeadsPage() {
         </DialogContent>
       </Dialog>
 
+      <Sheet open={!!selectedLead} onOpenChange={(open) => !open && setSelectedLead(null)}>
+        <SheetContent side="right" className="w-full sm:max-w-xl">
+          {selectedLead ? (
+            <>
+              <SheetHeader className="space-y-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <SheetTitle className="text-xl">{selectedLead.name}</SheetTitle>
+                    <p className="text-sm text-muted-foreground">
+                      {selectedLead.role ?? "Lead comercial"} • {selectedLead.company ?? "Empresa em análise"}
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Badge className="bg-red-100 text-red-700">
+                      {selectedLead.temperature}
+                    </Badge>
+                    <Badge variant="outline">{selectedLead.origin}</Badge>
+                  </div>
+                </div>
+              </SheetHeader>
+
+              <Tabs defaultValue="overview" className="mt-6">
+                <TabsList className="grid w-full grid-cols-3">
+                  <TabsTrigger value="overview">Visão Geral</TabsTrigger>
+                  <TabsTrigger value="timeline">Timeline</TabsTrigger>
+                  <TabsTrigger value="context">Contexto/DNA</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="overview" className="mt-4 space-y-3">
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <div className="rounded-lg border bg-muted/20 p-3">
+                      <div className="mb-2 flex items-center gap-2 text-sm font-medium">
+                        <Mail className="size-4 text-primary" /> E-mail
+                      </div>
+                      <p className="text-sm text-muted-foreground">{selectedLead.email ?? "Não informado"}</p>
+                    </div>
+                    <div className="rounded-lg border bg-muted/20 p-3">
+                      <div className="mb-2 flex items-center gap-2 text-sm font-medium">
+                        <MessageCircleMore className="size-4 text-primary" /> WhatsApp
+                      </div>
+                      <p className="text-sm text-muted-foreground">{selectedLead.whatsapp ?? "Não informado"}</p>
+                    </div>
+                    <div className="rounded-lg border bg-muted/20 p-3 md:col-span-2">
+                      <div className="mb-2 flex items-center gap-2 text-sm font-medium">
+                        <Network className="size-4 text-primary" /> LinkedIn
+                      </div>
+                      <p className="text-sm text-muted-foreground">{selectedLead.linkedin ?? "Não informado"}</p>
+                    </div>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="timeline" className="mt-4 space-y-3">
+                  <div className="space-y-3">
+                    {[
+                      { title: "Lead capturado via Radar", detail: "Hoje · 14:20", icon: <Sparkles className="size-4" /> },
+                      { title: "E-mail de prospecção enviado", detail: "Ontem · 18:40", icon: <Mail className="size-4" /> },
+                      { title: "Clicou na landing page", detail: "Há 3 dias", icon: <TrendingUp className="size-4" /> },
+                    ].map((event, index) => (
+                      <div key={index} className="flex gap-3 rounded-lg border bg-muted/20 p-3">
+                        <div className="mt-0.5 rounded-full bg-primary/10 p-2 text-primary">{event.icon}</div>
+                        <div>
+                          <p className="text-sm font-medium">{event.title}</p>
+                          <p className="text-sm text-muted-foreground">{event.detail}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="context" className="mt-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Anotações estratégicas</label>
+                    <textarea
+                      className="min-h-40 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm outline-none"
+                      defaultValue={selectedLead.notes ?? "Nenhuma anotação ainda."}
+                    />
+                  </div>
+                </TabsContent>
+              </Tabs>
+
+              <SheetFooter className="mt-6 flex flex-col gap-2 sm:flex-row">
+                <Button className="brand-gradient border-0 text-black hover:opacity-90">
+                  Converter em Oportunidade
+                </Button>
+                <Button variant="outline">
+                  <MessageCircleMore className="mr-1 size-4" /> Enviar WhatsApp
+                </Button>
+              </SheetFooter>
+            </>
+          ) : null}
+        </SheetContent>
+      </Sheet>
+
       <div className="rounded-xl border bg-background">
         <Table>
           <TableHeader>
@@ -184,7 +305,9 @@ function LeadsPage() {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem>Ver Perfil</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setSelectedLead(lead)}>
+                        Ver Perfil
+                      </DropdownMenuItem>
                       <DropdownMenuItem>Mover para Oportunidade</DropdownMenuItem>
                       <DropdownMenuItem>Enviar E-mail</DropdownMenuItem>
                     </DropdownMenuContent>
