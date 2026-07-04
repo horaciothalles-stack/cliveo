@@ -145,9 +145,8 @@ function LandingPagesPage() {
         paleta_cores: cliente?.paleta_cores ?? [],
       };
 
-      const { error } = await supabase.from("landing_pages").insert({
+      const payloadToInsert: Record<string, unknown> = {
         workspace_id: WS,
-        cliente_id: payload.clienteId || null,
         template_id: payload.templateId,
         nome: payload.nome.trim(),
         slug,
@@ -162,7 +161,26 @@ function LandingPagesPage() {
           slug,
           brand,
         },
-      });
+      };
+
+      if (payload.clienteId) {
+        payloadToInsert.cliente_id = payload.clienteId;
+      }
+
+      let { error } = await supabase.from("landing_pages").insert(payloadToInsert);
+
+      if (
+        error &&
+        typeof error.message === "string" &&
+        /cliente_id/i.test(error.message)
+      ) {
+        const cleanedPayload = { ...payloadToInsert };
+        delete cleanedPayload.cliente_id;
+        const retryResult = await supabase
+          .from("landing_pages")
+          .insert(cleanedPayload);
+        error = retryResult.error;
+      }
 
       if (error) throw error;
     },
