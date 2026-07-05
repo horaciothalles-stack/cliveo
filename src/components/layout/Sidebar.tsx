@@ -48,7 +48,6 @@ const NAV_SECTIONS: NavSection[] = [
     title: "Comercial",
     items: [
       { to: "/crm/leads", label: "Leads", icon: UserCheck },
-      { to: "/crm/empresas", label: "Empresas", icon: Building2 },
       { to: "/crm/oportunidades", label: "Oportunidades", icon: TrendingUp },
       { to: "/clientes", label: "Clientes", icon: Users },
       { divider: true, groupLabel: "Captação", label: "Captação", icon: Sparkles },
