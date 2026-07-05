@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -57,14 +57,14 @@ import {
   Mail,
   Phone,
   Calendar,
-  Building
+  Building,
+  FileText
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/crm/leads")({
   component: LeadsComponent,
 });
 
-// AQUI ESTÁ A CORREÇÃO DO TYPESCRIPT (notes foi adicionado)
 interface Lead {
   id: string;
   name: string;
@@ -87,6 +87,11 @@ function LeadsComponent() {
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+
+  // Estados de Importação
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [isProcessingImport, setIsProcessingImport] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -175,6 +180,104 @@ function LeadsComponent() {
     }
   };
 
+  // Lógica de Processamento de Arquivos
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      setImportFile(e.target.files[0]);
+    }
+  };
+
+  const handleProcessImport = async () => {
+    if (!importFile) return;
+
+    const fileExt = importFile.name.split('.').pop()?.toLowerCase();
+
+    // Aviso elegante para PDF e XLSX
+    if (fileExt === 'pdf' || fileExt === 'xlsx') {
+      toast.info(`A extração inteligente de ${fileExt.toUpperCase()} será ativada com o Cliveo Brain na próxima fase. Por favor, suba uma lista CSV para importação imediata.`);
+      return;
+    }
+
+    if (fileExt !== 'csv') {
+      toast.error('Formato não suportado. Envie um arquivo .csv');
+      return;
+    }
+
+    setIsProcessingImport(true);
+    const reader = new FileReader();
+
+    reader.onload = async (event) => {
+      try {
+        const text = event.target?.result as string;
+        // Divide o texto por quebras de linha e remove linhas vazias
+        const rows = text.split('\n').filter(row => row.trim() !== '');
+        
+        if (rows.length <= 1) {
+          toast.error('O arquivo CSV parece estar vazio ou sem dados válidos.');
+          setIsProcessingImport(false);
+          return;
+        }
+
+        // Lê a primeira linha como cabeçalhos e converte para minúsculo
+        const headers = rows[0].split(',').map(h => h.trim().toLowerCase());
+        const newLeads = [];
+
+        // Itera sobre as linhas seguintes criando os objetos do Lead
+        for (let i = 1; i < rows.length; i++) {
+          const values = rows[i].split(',').map(v => v.trim());
+          const leadData: any = {
+            status: 'lead',
+            source: 'Importação de Lista',
+            temperature: 'Frio'
+          };
+
+          // Mapeia colunas comuns para as nossas colunas do banco
+          headers.forEach((header, index) => {
+            const val = values[index];
+            if (!val) return;
+            
+            if ((header.includes('nome') || header === 'name') && !header.includes('empresa')) leadData.name = val;
+            if (header.includes('empresa') || header.includes('company')) leadData.company_name = val;
+            if (header.includes('email') || header.includes('e-mail')) leadData.email = val;
+            if (header.includes('telefone') || header.includes('celular') || header.includes('phone') || header.includes('whatsapp')) leadData.phone = val;
+            if (header.includes('cargo') || header.includes('role')) leadData.cargo = val;
+          });
+
+          // Só adiciona se tiver pelo menos o nome
+          if (leadData.name) {
+            newLeads.push(leadData);
+          }
+        }
+
+        if (newLeads.length === 0) {
+          toast.error('Nenhum lead válido encontrado. Verifique se o CSV possui uma coluna "Nome".');
+          return;
+        }
+
+        // Faz o Insert em massa (Bulk Insert) no Supabase
+        const { error } = await supabase.from('companies').insert(newLeads);
+        if (error) throw error;
+
+        toast.success(`${newLeads.length} leads foram importados com sucesso!`);
+        setIsImportOpen(false);
+        setImportFile(null);
+        fetchLeads(); // Atualiza a tabela na tela
+
+      } catch (error: any) {
+        toast.error('Erro ao processar arquivo: ' + error.message);
+      } finally {
+        setIsProcessingImport(false);
+      }
+    };
+
+    reader.onerror = () => {
+      toast.error('Erro na leitura do arquivo.');
+      setIsProcessingImport(false);
+    };
+
+    reader.readAsText(importFile);
+  };
+
   const filteredLeads = leads.filter((lead) => {
     const searchLower = searchTerm.toLowerCase();
     return (
@@ -205,28 +308,59 @@ function LeadsComponent() {
           </div>
           
           <div className="flex gap-3">
+            {/* Modal de Importação Ajustado */}
             <Dialog open={isImportOpen} onOpenChange={setIsImportOpen}>
               <DialogTrigger asChild>
                 <Button variant="outline" className="gap-2">
-                  <Upload size={16} /> Importar CSV
+                  <Upload size={16} /> Importar Leads
                 </Button>
               </DialogTrigger>
               <DialogContent className="sm:max-w-[425px] bg-card border-border">
                 <DialogHeader>
                   <DialogTitle>Importar Lista de Leads</DialogTitle>
                 </DialogHeader>
-                <div className="flex flex-col items-center justify-center border-2 border-dashed border-muted-foreground/30 rounded-lg p-8 space-y-3 my-4 hover:border-primary/50 transition-colors cursor-pointer">
-                  <Upload className="text-muted-foreground h-10 w-10" />
-                  <span className="text-sm font-medium">Arraste ou clique para selecionar arquivo .csv</span>
-                  <span className="text-xs text-muted-foreground">Tamanho máximo: 10MB</span>
-                  <input type="file" accept=".csv" className="hidden" id="csv-upload" />
+                
+                <div 
+                  className="flex flex-col items-center justify-center border-2 border-dashed border-muted-foreground/30 rounded-lg p-8 space-y-3 my-4 hover:border-primary/50 transition-colors cursor-pointer"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  {importFile ? (
+                    <>
+                      <FileText className="text-primary h-10 w-10" />
+                      <span className="text-sm font-medium text-center text-primary">{importFile.name}</span>
+                      <span className="text-xs text-muted-foreground">Arquivo selecionado pronto para leitura</span>
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="text-muted-foreground h-10 w-10" />
+                      <span className="text-sm font-medium text-center">Clique aqui para selecionar arquivo</span>
+                      <span className="text-xs text-muted-foreground text-center">Suporta listas CSV, XLSX ou extratos em PDF</span>
+                    </>
+                  )}
+                  <input 
+                    type="file" 
+                    accept=".csv,.xlsx,.pdf" 
+                    className="hidden" 
+                    ref={fileInputRef}
+                    onChange={handleFileChange}
+                  />
                 </div>
+                
                 <DialogFooter>
-                  <Button disabled variant="secondary" className="w-full">Processar Arquivo</Button>
+                  <Button 
+                    onClick={handleProcessImport} 
+                    disabled={!importFile || isProcessingImport} 
+                    className="w-full"
+                  >
+                    {isProcessingImport ? (
+                      <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Lendo dados...</>
+                    ) : "Processar Arquivo"}
+                  </Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
 
+            {/* Restante dos modais e tabelas... */}
             <Dialog open={isNewLeadOpen} onOpenChange={setIsNewLeadOpen}>
               <DialogTrigger asChild>
                 <Button className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90">
@@ -355,7 +489,6 @@ function LeadsComponent() {
             <Table>
               <TableHeader className="bg-muted/50">
                 <TableRow>
-                  {/* AQUI ESTÁ A CORREÇÃO DO CABEÇALHO DA TABELA */}
                   <TableHead>Nome do Lead</TableHead>
                   <TableHead>Empresa / Cargo</TableHead>
                   <TableHead>Contatos</TableHead>
