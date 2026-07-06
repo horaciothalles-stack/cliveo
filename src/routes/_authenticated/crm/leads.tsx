@@ -58,7 +58,9 @@ import {
   Phone,
   Calendar,
   Building,
-  FileText
+  FileText,
+  Sparkles,
+  TrendingUp
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/crm/leads")({
@@ -87,12 +89,20 @@ function LeadsComponent() {
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  
+  // Estados para Evoluir Lead para Oportunidade
+  const [isEvolveOpen, setIsEvolveOpen] = useState(false);
+  const [evolveData, setEvolveData] = useState({
+    title: "",
+    value: ""
+  });
 
   // Estados de Importação
   const [importFile, setImportFile] = useState<File | null>(null);
   const [isProcessingImport, setIsProcessingImport] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Estados do Formulário de Cadastro Manual
   const [formData, setFormData] = useState({
     name: "",
     company_name: "",
@@ -102,6 +112,10 @@ function LeadsComponent() {
     source: "Manual",
     temperature: "Morno",
   });
+
+  // Estado para Edição de Notas do Brain no Perfil
+  const [profileNotes, setProfileNotes] = useState("");
+  const [isUpdatingNotes, setIsProcessingNotes] = useState(false);
 
   const fetchLeads = async () => {
     try {
@@ -165,6 +179,69 @@ function LeadsComponent() {
     }
   };
 
+  // ATUALIZAÇÃO: Salva as Anotações Estratégicas do Gabriel diretamente no Banco
+  const handleUpdateNotes = async () => {
+    if (!selectedLead) return;
+    try {
+      setIsProcessingNotes(true);
+      const { error } = await supabase
+        .from("companies")
+        .update({ notes: profileNotes })
+        .eq("id", selectedLead.id);
+
+      if (error) throw error;
+
+      toast.success("Notas do Brain atualizadas com sucesso!");
+      // Atualiza o estado local para manter a consistência
+      setSelectedLead({ ...selectedLead, notes: profileNotes });
+      fetchLeads();
+    } catch (error: any) {
+      toast.error("Erro ao salvar anotações: " + error.message);
+    } finally {
+      setIsProcessingNotes(false);
+    }
+  };
+
+  // ATUALIZAÇÃO: Evolui o Lead mudando o status e criando a Oportunidade na tabela deals
+  const handleEvolveLead = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedLead) return;
+    if (!evolveData.title) {
+      toast.error("O título da oportunidade é obrigatório.");
+      return;
+    }
+
+    try {
+      // 1. Cria a Oportunidade (Deal) vinculada a essa empresa
+      const { error: dealError } = await supabase.from("deals").insert([
+        {
+          company_id: selectedLead.id,
+          title: evolveData.title,
+          value: parseFloat(evolveData.value) || 0,
+          stage: "prospeccao"
+        }
+      ]);
+
+      if (dealError) throw dealError;
+
+      // 2. Altera o status da Empresa para 'prospect' para sumir da triagem de leads frios
+      const { error: companyError } = await supabase
+        .from("companies")
+        .update({ status: "prospect" })
+        .eq("id", selectedLead.id);
+
+      if (companyError) throw companyError;
+
+      toast.success("Sucesso! Lead evoluído para o Pipeline de Oportunidades! 🚀");
+      setIsEvolveOpen(false);
+      setIsProfileOpen(false);
+      setEvolveData({ title: "", value: "" });
+      fetchLeads();
+    } catch (error: any) {
+      toast.error("Erro ao evoluir lead: " + error.message);
+    }
+  };
+
   const handleDeleteLead = async (id: string) => {
     if (!confirm("Tem certeza que deseja deletar este lead permanentemente?")) return;
 
@@ -180,7 +257,6 @@ function LeadsComponent() {
     }
   };
 
-  // Lógica de Processamento de Arquivos
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       setImportFile(e.target.files[0]);
@@ -189,10 +265,8 @@ function LeadsComponent() {
 
   const handleProcessImport = async () => {
     if (!importFile) return;
-
     const fileExt = importFile.name.split('.').pop()?.toLowerCase();
 
-    // Aviso elegante para PDF e XLSX
     if (fileExt === 'pdf' || fileExt === 'xlsx') {
       toast.info(`A extração inteligente de ${fileExt.toUpperCase()} será ativada com o Cliveo Brain na próxima fase. Por favor, suba uma lista CSV para importação imediata.`);
       return;
@@ -209,20 +283,17 @@ function LeadsComponent() {
     reader.onload = async (event) => {
       try {
         const text = event.target?.result as string;
-        // Divide o texto por quebras de linha e remove linhas vazias
         const rows = text.split('\n').filter(row => row.trim() !== '');
         
         if (rows.length <= 1) {
-          toast.error('O arquivo CSV parece estar vazio ou sem dados válidos.');
+          toast.error('O arquivo CSV parece estar vazio.');
           setIsProcessingImport(false);
           return;
         }
 
-        // Lê a primeira linha como cabeçalhos e converte para minúsculo
         const headers = rows[0].split(',').map(h => h.trim().toLowerCase());
         const newLeads = [];
 
-        // Itera sobre as linhas seguintes criando os objetos do Lead
         for (let i = 1; i < rows.length; i++) {
           const values = rows[i].split(',').map(v => v.trim());
           const leadData: any = {
@@ -231,7 +302,6 @@ function LeadsComponent() {
             temperature: 'Frio'
           };
 
-          // Mapeia colunas comuns para as nossas colunas do banco
           headers.forEach((header, index) => {
             const val = values[index];
             if (!val) return;
@@ -243,36 +313,29 @@ function LeadsComponent() {
             if (header.includes('cargo') || header.includes('role')) leadData.cargo = val;
           });
 
-          // Só adiciona se tiver pelo menos o nome
           if (leadData.name) {
             newLeads.push(leadData);
           }
         }
 
         if (newLeads.length === 0) {
-          toast.error('Nenhum lead válido encontrado. Verifique se o CSV possui uma coluna "Nome".');
+          toast.error('Nenhum lead válido encontrado.');
           return;
         }
 
-        // Faz o Insert em massa (Bulk Insert) no Supabase
         const { error } = await supabase.from('companies').insert(newLeads);
         if (error) throw error;
 
-        toast.success(`${newLeads.length} leads foram importados com sucesso!`);
+        toast.success(`${newLeads.length} leads importados!`);
         setIsImportOpen(false);
         setImportFile(null);
-        fetchLeads(); // Atualiza a tabela na tela
+        fetchLeads();
 
       } catch (error: any) {
-        toast.error('Erro ao processar arquivo: ' + error.message);
+        toast.error('Erro ao processar: ' + error.message);
       } finally {
         setIsProcessingImport(false);
       }
-    };
-
-    reader.onerror = () => {
-      toast.error('Erro na leitura do arquivo.');
-      setIsProcessingImport(false);
     };
 
     reader.readAsText(importFile);
@@ -308,7 +371,6 @@ function LeadsComponent() {
           </div>
           
           <div className="flex gap-3">
-            {/* Modal de Importação Ajustado */}
             <Dialog open={isImportOpen} onOpenChange={setIsImportOpen}>
               <DialogTrigger asChild>
                 <Button variant="outline" className="gap-2">
@@ -319,7 +381,6 @@ function LeadsComponent() {
                 <DialogHeader>
                   <DialogTitle>Importar Lista de Leads</DialogTitle>
                 </DialogHeader>
-                
                 <div 
                   className="flex flex-col items-center justify-center border-2 border-dashed border-muted-foreground/30 rounded-lg p-8 space-y-3 my-4 hover:border-primary/50 transition-colors cursor-pointer"
                   onClick={() => fileInputRef.current?.click()}
@@ -328,7 +389,6 @@ function LeadsComponent() {
                     <>
                       <FileText className="text-primary h-10 w-10" />
                       <span className="text-sm font-medium text-center text-primary">{importFile.name}</span>
-                      <span className="text-xs text-muted-foreground">Arquivo selecionado pronto para leitura</span>
                     </>
                   ) : (
                     <>
@@ -337,30 +397,16 @@ function LeadsComponent() {
                       <span className="text-xs text-muted-foreground text-center">Suporta listas CSV, XLSX ou extratos em PDF</span>
                     </>
                   )}
-                  <input 
-                    type="file" 
-                    accept=".csv,.xlsx,.pdf" 
-                    className="hidden" 
-                    ref={fileInputRef}
-                    onChange={handleFileChange}
-                  />
+                  <input type="file" accept=".csv,.xlsx,.pdf" className="hidden" ref={fileInputRef} onChange={handleFileChange} />
                 </div>
-                
                 <DialogFooter>
-                  <Button 
-                    onClick={handleProcessImport} 
-                    disabled={!importFile || isProcessingImport} 
-                    className="w-full"
-                  >
-                    {isProcessingImport ? (
-                      <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Lendo dados...</>
-                    ) : "Processar Arquivo"}
+                  <Button onClick={handleProcessImport} disabled={!importFile || isProcessingImport} className="w-full">
+                    {isProcessingImport ? "Lendo dados..." : "Processar Arquivo"}
                   </Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
 
-            {/* Restante dos modais e tabelas... */}
             <Dialog open={isNewLeadOpen} onOpenChange={setIsNewLeadOpen}>
               <DialogTrigger asChild>
                 <Button className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90">
@@ -375,79 +421,41 @@ function LeadsComponent() {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2 col-span-2">
                       <Label htmlFor="name">Nome do Contato *</Label>
-                      <Input 
-                        id="name" 
-                        placeholder="Ex: Thalles Horacio" 
-                        value={formData.name}
-                        onChange={(e) => setFormData({...formData, name: e.target.value})}
-                        required
-                      />
+                      <Input id="name" placeholder="Ex: Thalles Horacio" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} required />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="company">Nome da Empresa</Label>
-                      <Input 
-                        id="company" 
-                        placeholder="Ex: HRC Lab" 
-                        value={formData.company_name}
-                        onChange={(e) => setFormData({...formData, company_name: e.target.value})}
-                      />
+                      <Input id="company" placeholder="Ex: HRC Lab" value={formData.company_name} onChange={(e) => setFormData({...formData, company_name: e.target.value})} />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="cargo">Cargo do Decisor</Label>
-                      <Input 
-                        id="cargo" 
-                        placeholder="Ex: Diretor de Marketing" 
-                        value={formData.cargo}
-                        onChange={(e) => setFormData({...formData, cargo: e.target.value})}
-                      />
+                      <Input id="cargo" placeholder="Ex: Diretor de Marketing" value={formData.cargo} onChange={(e) => setFormData({...formData, cargo: e.target.value})} />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="email">E-mail</Label>
-                      <Input 
-                        id="email" 
-                        type="email" 
-                        placeholder="nome@empresa.com" 
-                        value={formData.email}
-                        onChange={(e) => setFormData({...formData, email: e.target.value})}
-                      />
+                      <Input id="email" type="email" placeholder="nome@empresa.com" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="phone">Telefone / WhatsApp</Label>
-                      <Input 
-                        id="phone" 
-                        placeholder="(83) 99999-9999" 
-                        value={formData.phone}
-                        onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                      />
+                      <Input id="phone" placeholder="(83) 99999-9999" value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="source">Origem do Lead</Label>
-                      <Select 
-                        value={formData.source} 
-                        onValueChange={(val) => setFormData({...formData, source: val})}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione" />
-                        </SelectTrigger>
+                      <Select value={formData.source} onValueChange={(val) => setFormData({...formData, source: val})}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="Manual">Manual</SelectItem>
                           <SelectItem value="Landing Page">Landing Page</SelectItem>
                           <SelectItem value="Meta Ads">Meta Ads</SelectItem>
                           <SelectItem value="Google Maps">Google Maps (Radar)</SelectItem>
                           <SelectItem value="WhatsApp">WhatsApp</SelectItem>
-                          <SelectItem value="Indicação">Indicação</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="temperature">Temperatura</Label>
-                      <Select 
-                        value={formData.temperature} 
-                        onValueChange={(val) => setFormData({...formData, temperature: val})}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione" />
-                        </SelectTrigger>
+                      <Select value={formData.temperature} onValueChange={(val) => setFormData({...formData, temperature: val})}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="Frio">Frio ❄️</SelectItem>
                           <SelectItem value="Morno">Morno 🔥</SelectItem>
@@ -467,12 +475,7 @@ function LeadsComponent() {
 
         <div className="flex items-center bg-card border border-border p-3 rounded-lg max-w-md gap-2">
           <Search className="text-muted-foreground" size={18} />
-          <Input
-            placeholder="Filtrar por nome, empresa ou e-mail..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 h-8"
-          />
+          <Input placeholder="Filtrar por nome, empresa ou e-mail..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 h-8" />
         </div>
 
         <div className="border border-border rounded-lg bg-card overflow-hidden">
@@ -482,9 +485,7 @@ function LeadsComponent() {
               <span className="text-sm text-muted-foreground">Sincronizando com o Supabase...</span>
             </div>
           ) : filteredLeads.length === 0 ? (
-            <div className="p-12 text-center text-muted-foreground">
-              Nenhuma empresa com status 'lead' encontrada.
-            </div>
+            <div className="p-12 text-center text-muted-foreground">Nenhuma empresa com status 'lead' encontrada.</div>
           ) : (
             <Table>
               <TableHeader className="bg-muted/50">
@@ -514,32 +515,26 @@ function LeadsComponent() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline" className="border-border bg-muted/20 text-muted-foreground">
-                        {lead.source}
-                      </Badge>
+                      <Badge variant="outline" className="border-border bg-muted/20 text-muted-foreground">{lead.source}</Badge>
                     </TableCell>
                     <TableCell>{getTemperatureBadge(lead.temperature)}</TableCell>
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" className="h-8 w-8 p-0">
-                            <MoreHorizontal size={16} />
-                          </Button>
+                          <Button variant="ghost" className="h-8 w-8 p-0"><MoreHorizontal size={16} /></Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="bg-card border-border text-foreground">
                           <DropdownMenuItem 
                             className="gap-2 cursor-pointer"
                             onClick={() => {
                               setSelectedLead(lead);
+                              setProfileNotes(lead.notes || "");
                               setIsProfileOpen(true);
                             }}
                           >
                             <Eye size={14} /> Ver Perfil 360º
                           </DropdownMenuItem>
-                          <DropdownMenuItem 
-                            className="gap-2 text-red-400 focus:text-red-400 cursor-pointer"
-                            onClick={() => handleDeleteLead(lead.id)}
-                          >
+                          <DropdownMenuItem className="gap-2 text-red-400 focus:text-red-400 cursor-pointer" onClick={() => handleDeleteLead(lead.id)}>
                             <Trash size={14} /> Deletar Lead
                           </DropdownMenuItem>
                         </DropdownMenuContent>
@@ -552,6 +547,7 @@ function LeadsComponent() {
           )}
         </div>
 
+        {/* Painel Lateral 360º Totalmente Controlável */}
         <Sheet open={isProfileOpen} onOpenChange={setIsProfileOpen}>
           <SheetContent className="sm:max-w-[500px] bg-card border-border text-foreground overflow-y-auto">
             {selectedLead && (
@@ -578,6 +574,7 @@ function LeadsComponent() {
                     <TabsTrigger value="dna">Contexto/DNA</TabsTrigger>
                   </TabsList>
 
+                  {/* Tab Visão Geral com Botão Inteligente de Evoluir Lead */}
                   <TabsContent value="overview" className="space-y-4 pt-3">
                     <div className="bg-muted/40 p-4 rounded-lg border border-border space-y-3">
                       <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Canais de Contato</h3>
@@ -593,48 +590,100 @@ function LeadsComponent() {
                       </div>
                     </div>
 
-                    <div className="bg-muted/40 p-4 rounded-lg border border-border space-y-2 text-xs text-muted-foreground">
+                    <div className="bg-muted/40 p-4 rounded-lg border border-border space-y-2 text-xs text-muted-foreground flex items-center justify-between">
                       <div className="flex items-center gap-1">
-                        <Calendar size={14} /> Entrada no sistema: {new Date(selectedLead.created_at).toLocaleString('pt-BR')}
+                        <Calendar size={14} /> Criado em: {new Date(selectedLead.created_at).toLocaleDateString('pt-BR')}
                       </div>
                     </div>
+
+                    {/* MODAL / DIALOG INTERNO PARA TRANSFORMAR O LEAD EM UMA OPORTUNIDADE REAL */}
+                    <Dialog open={isEvolveOpen} onOpenChange={setIsEvolveOpen}>
+                      <DialogTrigger asChild>
+                        <Button className="w-full gap-2 bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-medium hover:opacity-95">
+                          <TrendingUp size={16} /> Evoluir para Oportunidade
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="sm:max-w-[400px] bg-card border-border text-foreground">
+                        <DialogHeader>
+                          <DialogTitle>Evoluir Negócio</DialogTitle>
+                        </DialogHeader>
+                        <form onSubmit={handleEvolveLead} className="space-y-4 py-2">
+                          <div className="space-y-1.5">
+                            <Label htmlFor="deal-title">Título da Proposta / Serviço *</Label>
+                            <Input 
+                              id="deal-title" 
+                              placeholder="Ex: Rebranding Corporativo" 
+                              value={evolveData.title}
+                              onChange={(e) => setEvolveData({...evolveData, title: e.target.value})}
+                              required
+                            />
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label htmlFor="deal-value">Valor Estimado Inicial (R$)</Label>
+                            <Input 
+                              id="deal-value" 
+                              type="number" 
+                              placeholder="Ex: 8500" 
+                              value={evolveData.value}
+                              onChange={(e) => setEvolveData({...evolveData, value: e.target.value})}
+                            />
+                          </div>
+                          <DialogFooter className="pt-2">
+                            <Button type="submit" className="w-full bg-primary text-primary-foreground">Confirmar e Lançar no Kanban</Button>
+                          </DialogFooter>
+                        </form>
+                      </DialogContent>
+                    </Dialog>
                   </TabsContent>
 
+                  {/* Tab Timeline Histórica */}
                   <TabsContent value="timeline" className="pt-3">
                     <div className="relative border-l border-border ml-3 pl-6 space-y-6 py-2">
                       <div className="relative">
                         <span className="absolute -left-[31px] top-0 bg-primary/20 text-primary border border-primary/30 p-1 rounded-full">
                           <Building size={12} />
                         </span>
-                        <div className="text-sm font-semibold">Lead Capturado no Sistema</div>
-                        <div className="text-xs text-muted-foreground mt-0.5">Origem registrada como {selectedLead.source}</div>
+                        <div className="text-sm font-semibold">Lead Capturado no CRM</div>
+                        <div className="text-xs text-muted-foreground mt-0.5">Origem: {selectedLead.source}</div>
                       </div>
                       <div className="relative text-muted-foreground opacity-60">
                         <span className="absolute -left-[31px] top-0 bg-muted border border-border p-1 rounded-full">
-                          <Mail size={12} />
+                          <Sparkles size={12} />
                         </span>
-                        <div className="text-sm font-medium">Aguardando Primeiro Contato</div>
-                        <div className="text-xs mt-0.5">Disparar fluxo de aquecimento ou reunião técnica</div>
+                        <div className="text-sm font-medium">Triagem do Comercial Ativa</div>
+                        <div className="text-xs mt-0.5">Aguardando avanço de contato do Gabriel</div>
                       </div>
                     </div>
                   </TabsContent>
 
+                  {/* Tab DNA Contexto ATIVADA: Gabriel agora tem controle total das anotações */}
                   <TabsContent value="dna" className="space-y-4 pt-3">
                     <div className="space-y-2">
-                      <Label htmlFor="brain-notes">Notas Estratégicas e Dores Encontradas</Label>
+                      <Label htmlFor="brain-notes" className="text-sm font-medium flex items-center gap-1">
+                        <Sparkles size={14} className="text-primary" /> Notas Estratégicas (Alimentação do Brain)
+                      </Label>
                       <Textarea 
                         id="brain-notes" 
-                        placeholder="Insira aqui as principais dores do cliente, budget estimado, concorrentes ou insights coletados pelo Gabriel para alimentar o Cliveo Brain..." 
-                        className="min-h-[150px] bg-muted/20 border-border"
-                        defaultValue={selectedLead.notes || ""}
+                        placeholder="Mapeie as dores do cliente, budget, concorrentes ou o que foi conversado em reunião para alimentar a inteligência de criação posterior..." 
+                        className="min-h-[180px] bg-muted/20 border-border font-sans leading-relaxed"
+                        value={profileNotes}
+                        onChange={(e) => setProfileNotes(e.target.value)}
                       />
                     </div>
-                    <Button className="w-full btn-sm">Atualizar Notas do Brain</Button>
+                    <Button 
+                      className="w-full bg-primary text-primary-foreground" 
+                      onClick={handleUpdateNotes}
+                      disabled={isUpdatingNotes}
+                    >
+                      {isUpdatingNotes ? (
+                        <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Salvando notas...</>
+                      ) : "Atualizar Notas do Brain"}
+                    </Button>
                   </TabsContent>
                 </Tabs>
 
                 <div className="flex gap-3 mt-8 border-t border-border pt-4">
-                  <Button className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white gap-2">
+                  <Button className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white gap-2" onClick={() => window.open(`https://wa.me/${selectedLead.phone?.replace(/\D/g, '')}`, '_blank')}>
                     <Phone size={16} /> Enviar WhatsApp
                   </Button>
                   <Button variant="outline" className="flex-1 border-red-500/30 text-red-400 hover:bg-red-500/10 gap-2" onClick={() => handleDeleteLead(selectedLead.id)}>
