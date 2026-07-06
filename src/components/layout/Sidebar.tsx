@@ -1,6 +1,5 @@
 import { Link, useLocation } from "@tanstack/react-router";
 import { 
-  LayoutDashboard, 
   Users, 
   Briefcase, 
   ChevronDown,
@@ -9,7 +8,10 @@ import {
   LogOut,
   Sparkles,
   Megaphone,
-  Eye
+  Eye,
+  LayoutDashboard,
+  Target,
+  Radar
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
@@ -25,15 +27,15 @@ interface SidebarMenuItem {
 export function Sidebar() {
   const location = useLocation();
   const [isCrmOpen, setIsCrmOpen] = useState(true);
-  const [isVisionOpen, setIsVisionOpen] = useState(true); // Controla a nova sessão Visão Geral
+  const [isVisionOpen, setIsVisionOpen] = useState(true);
 
-  // NOVA ESTRUTURA: "Visão Geral" agrupa Dashboard e Carteira de Clientes no topo!
+  // MENU REFATORADO: Dashboard aponta para a home (/), Campanhas e Captação (Radar) separados!
   const menuItems: SidebarMenuItem[] = [
     {
       title: "Visão Geral",
       icon: Eye,
       submenu: [
-        { title: "Dashboard", path: "/_authenticated/" },
+        { title: "Dashboard", path: "/_authenticated/" }, // Aponta para a home raiz pós-login
         { title: "Carteira de Clientes", path: "/clientes" },
       ],
     },
@@ -43,7 +45,8 @@ export function Sidebar() {
       submenu: [
         { title: "Gestão de Leads", path: "/crm/leads" },
         { title: "Oportunidades (Kanban)", path: "/crm/oportunidades" },
-        { title: "Campanhas de Captação", path: "/crm/campanhas" },
+        { title: "Campanhas & LPs", path: "/crm/campanhas" },      // Foco em ofertas e landing pages
+        { title: "Radar de Prospecção", path: "/crm/landing-pages" }, // Rota do Scraper do Google Maps
         { title: "E-mail Marketing", path: "/crm/email-marketing" },
         { title: "WhatsApp Automações", path: "/crm/whatsapp" },
       ],
@@ -89,7 +92,6 @@ export function Sidebar() {
           const isCrmSection = item.title.includes("Comercial");
           const isVisionSection = item.title.includes("Visão Geral");
 
-          // Renderização de Menus Dropdown (Visão Geral, Comercial, Marketing, Gestão)
           const isOpen = isVisionSection ? isVisionOpen : (isCrmSection ? isCrmOpen : true);
           
           const toggleOpen = () => {
