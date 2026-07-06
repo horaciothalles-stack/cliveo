@@ -1,433 +1,298 @@
+import { useState, useEffect } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { Badge } from "@/components/ui/badge";
-import { Plus, Pencil, Trash2, ExternalLink, Search, BookOpen, FolderOpen } from "lucide-react";
-import { toast } from "sonner";
+import { Search, Loader2, Building2, Mail, Phone, ExternalLink, Receipt, BrainCircuit, CreditCard, Sparkles } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/clientes")({
   component: ClientesPage,
 });
 
-interface Cliente {
+interface Client {
   id: string;
-  nome: string;
-  apelido: string | null;
-  logo_url: string | null;
-  drive_url: string | null;
-  manual_marca_url: string | null;
-  paleta_cores: string[] | null;
+  name: string;
+  company_name?: string;
+  email?: string;
+  phone?: string;
+  cargo?: string;
+  source: string;
+  status: string;
   created_at: string;
+  notes?: string;
+  deals?: { value: number; stage: string }[];
 }
 
-interface FormState {
-  nome: string;
-  apelido: string;
-  logo_url: string;
-  drive_url: string;
-  manual_marca_url: string;
-  paleta_cores: string; // comma-separated hex
-}
-
-const EMPTY: FormState = {
-  nome: "",
-  apelido: "",
-  logo_url: "",
-  drive_url: "",
-  manual_marca_url: "",
-  paleta_cores: "",
-};
-
-function parsePaleta(s: string): string[] {
-  return s
-    .split(/[\s,;]+/)
-    .map((x) => x.trim())
-    .filter(Boolean);
-}
-
-/**
- * Returns a URL string only if it uses http(s); otherwise null.
- * Prevents javascript:, data:, and other unsafe schemes from rendering as links/images.
- */
-function safeHttpUrl(value: string | null | undefined): string | null {
-  if (!value) return null;
-  try {
-    const u = new URL(value);
-    return u.protocol === "http:" || u.protocol === "https:" ? u.toString() : null;
-  } catch {
-    return null;
-  }
-}
-
-function isValidHttpUrl(value: string): boolean {
-  return safeHttpUrl(value) !== null;
+function formatCurrency(value: number) {
+  return new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+    maximumFractionDigits: 0,
+  }).format(value);
 }
 
 function ClientesPage() {
-  const qc = useQueryClient();
-  const [search, setSearch] = useState("");
-  const [open, setOpen] = useState(false);
-  const [editing, setEditing] = useState<Cliente | null>(null);
-  const [form, setForm] = useState<FormState>(EMPTY);
-  const [confirmDelete, setConfirmDelete] = useState<Cliente | null>(null);
+  const [clients, setClients] = useState<Client[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
 
-  const { data: clientes = [], isLoading } = useQuery({
-    queryKey: ["clientes"],
-    queryFn: async () => {
+  // Estados para edição do DNA da Marca (Cliveo Brain)
+  const [brandNotes, setBrandNotes] = useState("");
+  const [isSavingBrain, setIsSavingBrain] = useState(false);
+
+  const fetchClients = async () => {
+    try {
+      setLoading(true);
+      // Puxa as empresas ativas como clientes e inclui seus respectivos deals fechados para o faturamento (SSOT)
       const { data, error } = await supabase
-        .from("clientes")
-        .select("*")
+        .from("companies")
+        .select("*, deals(value, stage)")
+        .eq("status", "active_client")
         .order("created_at", { ascending: false });
+
       if (error) throw error;
-      return (data ?? []) as Cliente[];
-    },
-  });
-
-  const upsert = useMutation({
-    mutationFn: async (payload: FormState & { id?: string }) => {
-      const row = {
-        nome: payload.nome.trim(),
-        apelido: payload.apelido.trim() || null,
-        logo_url: payload.logo_url.trim() || null,
-        drive_url: payload.drive_url.trim() || null,
-        manual_marca_url: payload.manual_marca_url.trim() || null,
-        paleta_cores: parsePaleta(payload.paleta_cores),
-      };
-      if (payload.id) {
-        const { error } = await supabase.from("clientes").update(row).eq("id", payload.id);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.from("clientes").insert(row);
-        if (error) throw error;
-      }
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["clientes"] });
-      qc.invalidateQueries({ queryKey: ["dashboard-counts"] });
-      toast.success(editing ? "Cliente atualizado" : "Cliente criado");
-      setOpen(false);
-      setEditing(null);
-      setForm(EMPTY);
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
-  const remove = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("clientes").delete().eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["clientes"] });
-      qc.invalidateQueries({ queryKey: ["dashboard-counts"] });
-      toast.success("Cliente removido");
-      setConfirmDelete(null);
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
-  const openNew = () => {
-    setEditing(null);
-    setForm(EMPTY);
-    setOpen(true);
+      setClients(data || []);
+    } catch (error: any) {
+      toast.error("Erro ao carregar carteira de clientes: " + error.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const openEdit = (c: Cliente) => {
-    setEditing(c);
-    setForm({
-      nome: c.nome,
-      apelido: c.apelido ?? "",
-      logo_url: c.logo_url ?? "",
-      drive_url: c.drive_url ?? "",
-      manual_marca_url: c.manual_marca_url ?? "",
-      paleta_cores: (c.paleta_cores ?? []).join(", "),
-    });
-    setOpen(true);
+  useEffect(() => {
+    fetchClients();
+  }, []);
+
+  // Salva o DNA estratégico alimentado por você diretamente no cadastro unificado do cliente
+  const handleSaveBrainDNA = async () => {
+    if (!selectedClient) return;
+    try {
+      setIsSavingBrain(true);
+      const { error } = await supabase
+        .from("companies")
+        .update({ notes: brandNotes })
+        .eq("id", selectedClient.id);
+
+      if (error) throw error;
+
+      toast.success("Cérebro do Cliveo alimentado com o DNA da marca! 🧠");
+      setSelectedClient({ ...selectedClient, notes: brandNotes });
+      fetchClients();
+    } catch (error: any) {
+      toast.error("Erro ao salvar DNA da marca: " + error.message);
+    } finally {
+      setIsSavingBrain(false);
+    }
   };
 
-  const filtered = clientes.filter((c) => {
-    const q = search.toLowerCase();
+  const filteredClients = clients.filter((client) => {
+    const searchLower = searchTerm.toLowerCase();
     return (
-      !q ||
-      c.nome.toLowerCase().includes(q) ||
-      (c.apelido ?? "").toLowerCase().includes(q)
+      client.name?.toLowerCase().includes(searchLower) ||
+      client.company_name?.toLowerCase().includes(searchLower)
     );
   });
 
   return (
-    <AppLayout title="Clientes" subtitle="Cadastro central de marcas atendidas">
-      <div className="flex flex-col sm:flex-row gap-3 mb-6">
-        <div className="relative flex-1">
-          <Search className="size-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Buscar cliente…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9"
-          />
+    <AppLayout title="Carteira de Clientes" subtitle="Gestão operacional, financeira e retenção da HRC Lab">
+      <div className="space-y-6">
+        {/* Top Header sem botões de cadastro manual */}
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Contas Ativas</h1>
+            <p className="text-muted-foreground">Clientes gerados de forma automatizada através do funil de vendas.</p>
+          </div>
+          
+          <div className="flex items-center bg-card border border-border p-2 rounded-lg w-72 gap-2">
+            <Search className="text-muted-foreground shrink-0 ml-1" size={18} />
+            <Input
+              placeholder="Buscar conta..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 h-8"
+            />
+          </div>
         </div>
-        <Button onClick={openNew} className="brand-gradient text-black border-0 hover:opacity-90">
-          <Plus className="size-4 mr-1" /> Novo Cliente
-        </Button>
-      </div>
 
-      {isLoading ? (
-        <p className="text-muted-foreground text-sm">Carregando…</p>
-      ) : filtered.length === 0 ? (
-        <Card>
-          <CardContent className="py-16 text-center">
-            <div className="mx-auto size-12 rounded-full brand-gradient grid place-items-center mb-4">
-              <Plus className="size-5 text-black" />
-            </div>
-            <h3 className="font-semibold">Nenhum cliente ainda</h3>
-            <p className="text-sm text-muted-foreground mt-1">
-              Cadastre o primeiro cliente para começar.
+        {loading ? (
+          <div className="flex justify-center items-center h-64">
+            <Loader2 className="animate-spin text-primary h-8 w-8" />
+          </div>
+        ) : filteredClients.length === 0 ? (
+          <div className="flex flex-col items-center justify-center border-2 border-dashed border-border rounded-xl h-64 bg-card/50 p-6 text-center">
+            <Building2 className="h-12 w-12 text-muted-foreground mb-4 opacity-40" />
+            <h3 className="text-lg font-semibold text-foreground">Nenhuma conta ativa na esteira.</h3>
+            <p className="text-sm text-muted-foreground max-w-md mt-1">
+              Fluxo automatizado ativo: assim que o Gabriel arrastar uma oportunidade para "Fechado/Ganho", a conta surgirá aqui automaticamente com seus valores faturados.
             </p>
-            <Button onClick={openNew} className="mt-4 brand-gradient text-black border-0">
-              Adicionar cliente
-            </Button>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {filtered.map((c) => (
-            <Card key={c.id} className="group relative overflow-hidden hover:border-primary/50 transition-colors">
-              <CardContent className="p-5">
-                <div className="flex items-start gap-4">
-                  <div className="size-14 shrink-0 rounded-lg border bg-muted grid place-items-center overflow-hidden">
-                    {c.logo_url ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={safeHttpUrl(c.logo_url) ?? ""}
-                        alt={c.nome}
-                        className="size-full object-cover"
-                      />
-                    ) : (
-                      <span className="text-lg font-bold brand-text-gradient">
-                        {c.nome.charAt(0).toUpperCase()}
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="font-semibold truncate">{c.nome}</div>
-                    {c.apelido && (
-                      <div className="text-xs text-muted-foreground truncate">@{c.apelido}</div>
-                    )}
-                    <div className="flex flex-wrap gap-1 mt-2">
-                      {(c.paleta_cores ?? []).slice(0, 6).map((color, i) => (
-                        <span
-                          key={i}
-                          title={color}
-                          className="size-4 rounded-full border"
-                          style={{ backgroundColor: color }}
-                        />
-                      ))}
-                      {(c.paleta_cores ?? []).length === 0 && (
-                        <Badge variant="outline" className="text-[10px]">sem paleta</Badge>
-                      )}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredClients.map((client) => {
+              // Soma dinamicamente os valores de contratos fechados do cliente (Conexão direta com faturamento)
+              const totalFaturado = client.deals?.filter(d => d.stage === 'fechado_ganho').reduce((sum, deal) => sum + Number(deal.value), 0) || 0;
+
+              return (
+                <Card 
+                  key={client.id} 
+                  className="bg-card border-border hover:border-primary/50 transition-colors cursor-pointer group shadow-sm"
+                  onClick={() => {
+                    setSelectedClient(client);
+                    setBrandNotes(client.notes || "");
+                    setIsProfileOpen(true);
+                  }}
+                >
+                  <CardHeader className="pb-3 flex flex-row items-start justify-between">
+                    <div>
+                      <CardTitle className="text-lg font-bold truncate max-w-[200px]">{client.company_name || client.name}</CardTitle>
+                      <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                        Decisor: {client.name}
+                      </p>
+                    </div>
+                    <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20">Ativo</Badge>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex items-center justify-between p-3 rounded-lg bg-muted/40 border border-border/50">
+                      <div className="flex flex-col">
+                        <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Valor Faturado (LTV)</span>
+                        <span className="text-base font-bold text-primary">{formatCurrency(totalFaturado)}</span>
+                      </div>
+                      <Receipt className="text-muted-foreground/50" size={18} />
+                    </div>
+
+                    <div className="flex gap-2">
+                      <Button variant="secondary" className="flex-1 text-xs h-8 gap-1.5 bg-background border border-border hover:bg-muted">
+                        <CreditCard size={13} /> Financeiro
+                      </Button>
+                      <Button variant="secondary" className="flex-1 text-xs h-8 gap-1.5 bg-background border border-border hover:bg-muted">
+                        <BrainCircuit size={13} /> DNA da Marca
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        )}
+
+        {/* PAINEL LATERAL DE GESTÃO DO CLIENTE */}
+        <Sheet open={isProfileOpen} onOpenChange={setIsProfileOpen}>
+          <SheetContent className="sm:max-w-[550px] bg-card border-border text-foreground overflow-y-auto">
+            {selectedClient && (
+              <>
+                <SheetHeader className="space-y-1 mb-6">
+                  <div className="flex justify-between items-start pt-4">
+                    <div>
+                      <SheetTitle className="text-2xl font-bold">{selectedClient.company_name || selectedClient.name}</SheetTitle>
+                      <SheetDescription className="text-sm mt-1">
+                        Responsável Técnico: <span className="text-foreground font-medium">{selectedClient.name}</span> {selectedClient.cargo ? `(${selectedClient.cargo})` : ""}
+                      </SheetDescription>
                     </div>
                   </div>
-                </div>
+                </SheetHeader>
 
-                <div className="mt-4 flex flex-wrap gap-2">
-                  {safeHttpUrl(c.drive_url) && (
-                    <a
-                      href={safeHttpUrl(c.drive_url)!}
-                      target="_blank"
-                      rel="noreferrer noopener"
-                      className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary"
-                    >
-                      <FolderOpen className="size-3" /> Drive <ExternalLink className="size-3" />
-                    </a>
-                  )}
-                  {safeHttpUrl(c.manual_marca_url) && (
-                    <a
-                      href={safeHttpUrl(c.manual_marca_url)!}
-                      target="_blank"
-                      rel="noreferrer noopener"
-                      className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary"
-                    >
-                      <BookOpen className="size-3" /> Manual <ExternalLink className="size-3" />
-                    </a>
-                  )}
-                </div>
+                <Tabs defaultValue="operacional" className="w-full">
+                  <TabsList className="grid w-full grid-cols-3 bg-muted">
+                    <TabsTrigger value="operacional">Gestão (Mel)</TabsTrigger>
+                    <TabsTrigger value="portal">Portal</TabsTrigger>
+                    <TabsTrigger value="dna">DNA (Thalles)</TabsTrigger>
+                  </TabsList>
 
-                <div className="mt-4 flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Button variant="ghost" size="icon" onClick={() => openEdit(c)} aria-label="Editar">
-                    <Pencil className="size-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setConfirmDelete(c)}
-                    aria-label="Excluir"
-                    className="text-destructive hover:text-destructive"
-                  >
-                    <Trash2 className="size-4" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
+                  {/* Foco Operacional / Financeiro da Melissa */}
+                  <TabsContent value="operacional" className="space-y-4 pt-4">
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div className="bg-muted/30 p-3 rounded-lg border border-border">
+                        <span className="text-xs text-muted-foreground font-medium uppercase">E-mail Cadastrado</span>
+                        <p className="font-medium mt-1 truncate flex items-center gap-1.5"><Mail size={13}/> {selectedClient.email || "—"}</p>
+                      </div>
+                      <div className="bg-muted/30 p-3 rounded-lg border border-border">
+                        <span className="text-xs text-muted-foreground font-medium uppercase">WhatsApp</span>
+                        <p className="font-medium mt-1 flex items-center gap-1.5"><Phone size={13}/> {selectedClient.phone || "—"}</p>
+                      </div>
+                    </div>
 
-      {/* Form dialog */}
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-xl">
-          <DialogHeader>
-            <DialogTitle>{editing ? "Editar cliente" : "Novo cliente"}</DialogTitle>
-            <DialogDescription>
-              Cadastre informações da marca para vincular a projetos e ativos.
-            </DialogDescription>
-          </DialogHeader>
-          <form
-            className="grid gap-4"
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (!form.nome.trim()) return toast.error("Nome é obrigatório");
-              for (const [label, val] of [
-                ["Logo", form.logo_url],
-                ["Drive", form.drive_url],
-                ["Manual da marca", form.manual_marca_url],
-              ] as const) {
-                if (val.trim() && !isValidHttpUrl(val.trim())) {
-                  return toast.error(`URL inválida em ${label}: use http:// ou https://`);
-                }
-              }
-              upsert.mutate({ ...form, id: editing?.id });
-            }}
-          >
-            <div className="grid sm:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label htmlFor="nome">Nome *</Label>
-                <Input
-                  id="nome"
-                  value={form.nome}
-                  onChange={(e) => setForm({ ...form, nome: e.target.value })}
-                  required
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="apelido">Apelido</Label>
-                <Input
-                  id="apelido"
-                  value={form.apelido}
-                  onChange={(e) => setForm({ ...form, apelido: e.target.value })}
-                />
-              </div>
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="logo">Logo (URL)</Label>
-              <Input
-                id="logo"
-                placeholder="https://…"
-                value={form.logo_url}
-                onChange={(e) => setForm({ ...form, logo_url: e.target.value })}
-              />
-            </div>
-            <div className="grid sm:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label htmlFor="drive">Pasta do Drive</Label>
-                <Input
-                  id="drive"
-                  placeholder="https://drive.google.com/…"
-                  value={form.drive_url}
-                  onChange={(e) => setForm({ ...form, drive_url: e.target.value })}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="manual">Manual da Marca</Label>
-                <Input
-                  id="manual"
-                  placeholder="https://…"
-                  value={form.manual_marca_url}
-                  onChange={(e) => setForm({ ...form, manual_marca_url: e.target.value })}
-                />
-              </div>
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="paleta">Paleta de cores (hex separados por vírgula)</Label>
-              <Textarea
-                id="paleta"
-                rows={2}
-                placeholder="#F2B705, #F28B0C, #0D0D0D"
-                value={form.paleta_cores}
-                onChange={(e) => setForm({ ...form, paleta_cores: e.target.value })}
-              />
-              <div className="flex flex-wrap gap-1 pt-1">
-                {parsePaleta(form.paleta_cores).map((c, i) => (
-                  <span
-                    key={i}
-                    className="size-5 rounded-full border"
-                    style={{ backgroundColor: c }}
-                    title={c}
-                  />
-                ))}
-              </div>
-            </div>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-                Cancelar
-              </Button>
-              <Button
-                type="submit"
-                disabled={upsert.isPending}
-                className="brand-gradient text-black border-0"
-              >
-                {upsert.isPending ? "Salvando…" : editing ? "Salvar" : "Criar cliente"}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+                    <div className="border border-border rounded-xl p-4 bg-card space-y-3">
+                      <h4 className="font-semibold text-sm flex items-center gap-1.5"><Receipt size={15}/> Auditoria de Contratos Fechados</h4>
+                      <div className="space-y-2">
+                        {selectedClient.deals?.filter(d => d.stage === 'fechado_ganho').map((deal, idx) => (
+                          <div key={idx} className="flex justify-between items-center text-xs p-2.5 bg-muted/30 rounded-lg border border-border/40">
+                            <span className="font-medium text-muted-foreground">Contrato Comercial Ativo</span>
+                            <span className="font-mono font-bold text-emerald-400">{formatCurrency(deal.value)}</span>
+                          </div>
+                        )) || <p className="text-xs text-muted-foreground">Nenhum contrato ativo contabilizado.</p>}
+                      </div>
+                    </div>
+                  </TabsContent>
 
-      {/* Delete confirm */}
-      <AlertDialog open={!!confirmDelete} onOpenChange={(o) => !o && setConfirmDelete(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Excluir {confirmDelete?.nome}?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Esta ação remove o cliente e em cascata todos os projetos e ativos vinculados.
-              Não pode ser desfeita.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => confirmDelete && remove.mutate(confirmDelete.id)}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              Excluir
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+                  {/* Portal do Cliente - Escudo Operacional */}
+                  <TabsContent value="portal" className="pt-4 space-y-4">
+                    <div className="border border-border p-6 rounded-xl text-center space-y-3 bg-muted/10">
+                      <ExternalLink className="h-8 w-8 text-primary mx-auto opacity-70" />
+                      <h3 className="font-bold text-base">Acesso Seguro ao Portal</h3>
+                      <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+                        O cliente acompanha as produções de tráfego, peças e aprovações sem poluir seu WhatsApp pessoal ou da Melissa.
+                      </p>
+                      <Button className="w-full text-xs font-medium" variant="outline">Copiar Link Mágico do Cliente</Button>
+                    </div>
+                  </TabsContent>
+
+                  {/* DNA da Marca / Cliveo Brain - Seu Domínio Estratégico */}
+                  <TabsContent value="dna" className="pt-4 space-y-4">
+                    <div className="border border-primary/20 bg-primary/5 p-4 rounded-xl space-y-4">
+                      <div className="flex items-center gap-1.5 text-primary font-bold text-sm">
+                        <BrainCircuit size={16} />
+                        Alimentação do Cérebro Contextual
+                      </div>
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        Escreva aqui a essência do cliente (Tom de voz, linha editorial, personas, restrições de cores). Este bloco servirá de contexto obrigatório para a IA na fase de criação.
+                      </p>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="brain-dna-text" className="text-xs font-medium">Briefing e Identidade de Marca</Label>
+                        <Textarea 
+                          id="brain-dna-text"
+                          placeholder="Ex: Tom de voz arrojado e focado em vendas. Nunca usar cores frias. Foco na persona de médicos de alto padrão..."
+                          className="min-h-[160px] bg-background border-border text-xs leading-relaxed"
+                          value={brandNotes}
+                          onChange={(e) => setBrandNotes(e.target.value)}
+                        />
+                      </div>
+
+                      <Button 
+                        className="w-full text-xs font-medium gap-1.5" 
+                        onClick={handleSaveBrainDNA}
+                        disabled={isSavingBrain}
+                      >
+                        {isSavingBrain ? (
+                          <><Loader2 className="h-3 w-3 animate-spin" /> Sincronizando DNA...</>
+                        ) : (
+                          <><Sparkles size={13} /> Gravar no Cadastro do Cliente</>
+                        )}
+                      </Button>
+                    </div>
+                  </TabsContent>
+                </Tabs>
+              </>
+            )}
+          </SheetContent>
+        </Sheet>
+      </div>
     </AppLayout>
   );
 }

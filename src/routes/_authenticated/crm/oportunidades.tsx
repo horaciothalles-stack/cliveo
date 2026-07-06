@@ -191,6 +191,9 @@ function OportunidadesPage() {
     e.preventDefault();
     if (!draggedDealId) return;
 
+    // Acha qual é a empresa associada a este negócio
+    const dealMovel = deals.find(d => d.id === draggedDealId);
+
     const updatedDeals = deals.map((deal) => {
       if (deal.id === draggedDealId) return { ...deal, stage: newStage };
       return deal;
@@ -198,15 +201,22 @@ function OportunidadesPage() {
     setDeals(updatedDeals);
 
     try {
-      const { error } = await supabase
+      // 1. Atualiza o status do negócio
+      const { error: dealError } = await supabase
         .from("deals")
         .update({ stage: newStage })
         .eq("id", draggedDealId);
 
-      if (error) throw error;
+      if (dealError) throw dealError;
 
-      if (newStage === "fechado_ganho") {
-        toast.success("Parabéns! Negócio fechado pela HRC Lab! 🎉");
+      // 2. GATILHO MÁGICO: Se ganhou, a empresa vira Cliente!
+      if (newStage === "fechado_ganho" && dealMovel) {
+        await supabase
+          .from("companies")
+          .update({ status: "active_client" })
+          .eq("id", dealMovel.company_id);
+          
+        toast.success("Parabéns! Negócio fechado! Empresa promovida a Cliente. 🎉");
       }
     } catch (error: any) {
       toast.error("Erro ao mover oportunidade: " + error.message);
