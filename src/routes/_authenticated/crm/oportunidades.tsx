@@ -24,7 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, TrendingUp, Sparkles, Loader2, GripVertical, Building, DollarSign } from "lucide-react";
+import { Plus, TrendingUp, Sparkles, Loader2, GripVertical, Building, DollarSign, Trash } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/crm/oportunidades")({
   component: OportunidadesPage,
@@ -85,7 +85,6 @@ function OportunidadesPage() {
     stage: "prospeccao",
   });
 
-  // Busca dados em tempo real do seu Supabase
   const fetchData = async () => {
     try {
       setLoading(true);
@@ -114,7 +113,6 @@ function OportunidadesPage() {
     fetchData();
   }, []);
 
-  // Mapeamento dinâmico das colunas com base no estado de deals vindo do banco
   const groupedDeals = useMemo(() => {
     return stages.map((stage) => ({
       ...stage,
@@ -122,7 +120,6 @@ function OportunidadesPage() {
     }));
   }, [deals]);
 
-  // CORREÇÃO DA FALHA 1: Soma estritamente dinâmica baseada nos dados REAIS do banco
   const totalValue = useMemo(() => {
     return deals.reduce((sum, deal) => sum + (Number(deal.value) || 0), 0);
   }, [deals]);
@@ -152,6 +149,22 @@ function OportunidadesPage() {
       fetchData();
     } catch (error: any) {
       toast.error("Erro ao criar oportunidade: " + error.message);
+    }
+  };
+
+  // Função Nova: Deletar Oportunidade
+  const handleDeleteDeal = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation(); // Evita que o clique acione o Drag and Drop sem querer
+    if (!confirm("Tem certeza que deseja excluir esta oportunidade? O registro será apagado.")) return;
+
+    try {
+      const { error } = await supabase.from("deals").delete().eq("id", id);
+      if (error) throw error;
+
+      toast.success("Negócio descartado com sucesso.");
+      fetchData();
+    } catch (error: any) {
+      toast.error("Erro ao deletar oportunidade: " + error.message);
     }
   };
 
@@ -286,11 +299,9 @@ function OportunidadesPage() {
           <Loader2 className="animate-spin text-primary h-8 w-8" />
         </div>
       ) : (
-        /* CORREÇÃO DA FALHA 2: ScrollArea configurada perfeitamente com contêiner flexível */
         <ScrollArea className="w-full whitespace-nowrap rounded-xl border border-border/40 bg-background/50 p-4">
           <div className="flex gap-4 min-h-[55vh]">
             {groupedDeals.map((stage) => {
-              // Calcula a soma financeira individual desta coluna específica do banco
               const columnValue = stage.items.reduce((sum, item) => sum + (Number(item.value) || 0), 0);
 
               return (
@@ -300,7 +311,6 @@ function OportunidadesPage() {
                   onDragOver={onDragOver}
                   onDrop={(e) => onDrop(e, stage.id)}
                 >
-                  {/* Título e Contador da Coluna */}
                   <div className="mb-2 flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <span className={`size-2.5 rounded-full ${stage.accent}`} />
@@ -309,12 +319,10 @@ function OportunidadesPage() {
                     <Badge variant="outline" className="bg-background text-xs font-mono">{stage.items.length}</Badge>
                   </div>
 
-                  {/* Subtotal Financeiro da Coluna */}
                   <div className="text-xs text-muted-foreground font-medium flex items-center gap-0.5 mb-3 px-1">
                     <DollarSign size={12} className="text-muted-foreground/70" /> {formatCurrency(columnValue)}
                   </div>
 
-                  {/* Miolo da Coluna para os Cards */}
                   <div className="flex-1 space-y-3 min-h-[200px]">
                     {stage.items.length === 0 ? (
                       <div className="rounded-lg border border-dashed border-border/60 p-4 text-center text-xs text-muted-foreground/60 flex h-32 items-center justify-center whitespace-normal">
@@ -330,7 +338,7 @@ function OportunidadesPage() {
                             draggable
                             onDragStart={(e) => onDragStart(e, deal.id)}
                             onDragEnd={onDragEnd}
-                            className="border-border/70 bg-card shadow-sm transition-all hover:border-primary/40 cursor-grab active:cursor-grabbing whitespace-normal"
+                            className="border-border/70 bg-card shadow-sm transition-all hover:border-primary/40 cursor-grab active:cursor-grabbing whitespace-normal relative group"
                           >
                             <CardContent className="space-y-3 p-3">
                               <div className="flex justify-between items-start gap-2">
@@ -340,7 +348,16 @@ function OportunidadesPage() {
                                     <Building className="size-3 shrink-0" /> {deal.companies?.name || "Empresa Desconhecida"}
                                   </p>
                                 </div>
-                                <GripVertical className="text-muted-foreground/30 shrink-0 mt-0.5" size={14} />
+                                <div className="flex items-center gap-1 mt-0.5">
+                                  <button
+                                    onClick={(e) => handleDeleteDeal(deal.id, e)}
+                                    className="opacity-0 group-hover:opacity-100 text-muted-foreground/40 hover:text-red-400 transition-all cursor-pointer p-1 rounded-md hover:bg-red-500/10"
+                                    title="Excluir Oportunidade"
+                                  >
+                                    <Trash size={14} />
+                                  </button>
+                                  <GripVertical className="text-muted-foreground/30 shrink-0" size={14} />
+                                </div>
                               </div>
 
                               <div className="flex items-center justify-between pt-2 border-t border-border/30">
