@@ -8,10 +8,7 @@ import {
   LogOut,
   Sparkles,
   Megaphone,
-  Eye,
-  LayoutDashboard,
-  Target,
-  Radar
+  Eye
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
@@ -29,13 +26,13 @@ export function Sidebar() {
   const [isCrmOpen, setIsCrmOpen] = useState(true);
   const [isVisionOpen, setIsVisionOpen] = useState(true);
 
-  // MENU REFATORADO: Dashboard aponta para a home (/), Campanhas e Captação (Radar) separados!
+  // ESTRUTURA BLINDADA: Dashboard apontando para a home e rotas comerciais corrigidas
   const menuItems: SidebarMenuItem[] = [
     {
       title: "Visão Geral",
       icon: Eye,
       submenu: [
-        { title: "Dashboard", path: "/_authenticated/" }, // Aponta para a home raiz pós-login
+        { title: "Dashboard", path: "/" }, // AJUSTE: Aponta para a home real sem estourar página de erro
         { title: "Carteira de Clientes", path: "/clientes" },
       ],
     },
@@ -45,8 +42,8 @@ export function Sidebar() {
       submenu: [
         { title: "Gestão de Leads", path: "/crm/leads" },
         { title: "Oportunidades (Kanban)", path: "/crm/oportunidades" },
-        { title: "Campanhas & LPs", path: "/crm/campanhas" },      // Foco em ofertas e landing pages
-        { title: "Radar de Prospecção", path: "/crm/landing-pages" }, // Rota do Scraper do Google Maps
+        { title: "Campanhas & LPs", path: "/crm/landing-pages" }, // CORREÇÃO: Mapeia o gerador de Landing Pages correto
+        { title: "Radar de Prospecção", path: "/crm/campanhas" },  // CORREÇÃO: Abre o painel do Scraper local do Google
         { title: "E-mail Marketing", path: "/crm/email-marketing" },
         { title: "WhatsApp Automações", path: "/crm/whatsapp" },
       ],
